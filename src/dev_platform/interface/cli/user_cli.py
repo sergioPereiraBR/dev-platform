@@ -1,10 +1,10 @@
 #   src/interface/cli/user_cli.py  (formerly user_cli.py, renamed for clarity)
 import click
-from src.application.user.usecases import CreateUserUseCase, ListUsersUseCase
-from src.application.user.dtos import UserCreateDTO
-from src.infrastructure.database.repositories import SQLUserRepository
-from src.infrastructure.database.session import get_db_session
-from src.shared.exceptions import DomainException, DatabaseException
+from application.user.usecases import CreateUserUseCase, ListUsersUseCase
+from application.user.dtos import UserCreateDTO
+from infrastructure.database.repositories import SQLUserRepository
+from infrastructure.database.session import get_db_session
+from shared.exceptions import DomainException, DatabaseException
 
 @click.group()
 def cli():

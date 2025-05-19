@@ -6,3 +6,7 @@ class DomainException(Exception):
 class DatabaseException(Exception):
     """Exception for database-related errors."""
     pass
+
+class DomainError(Exception):
+    """Exception for database-related errors (DomainError)."""
+    pass

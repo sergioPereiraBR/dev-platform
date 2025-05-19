@@ -1,10 +1,10 @@
 #   src/infrastructure/database/repositories.py
 from typing import List
 from sqlalchemy.orm import Session
-from src.domain.user.entities import User
-from src.domain.user.interfaces import UserRepository
-from src.infrastructure.database.models import UserModel
-from src.shared.exceptions import DatabaseException  #   New DatabaseException
+from domain.user.entities import User
+from domain.user.interfaces import UserRepository
+from infrastructure.database.models import UserModel
+from shared.exceptions import DatabaseException  #   New DatabaseException
 
 class SQLUserRepository(UserRepository):
     def __init__(self, session: Session):

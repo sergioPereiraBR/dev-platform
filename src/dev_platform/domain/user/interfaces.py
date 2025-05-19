@@ -1,7 +1,7 @@
 #   src/domain/user/interfaces.py
 from abc import ABC, abstractmethod
 from typing import List
-from src.domain.user.entities import User
+from domain.user.entities import User
 
 class UserRepository(ABC):
     @abstractmethod

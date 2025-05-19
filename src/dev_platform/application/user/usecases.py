@@ -1,8 +1,9 @@
 #   src/application/user/usecases.py
-from src.domain.user.entities import User
-from src.domain.user.interfaces import UserRepository
-from src.application.user.dtos import UserCreateDTO  #   New DTO
-from src.shared.exceptions import DomainException
+from typing import List
+from domain.user.entities import User
+from domain.user.interfaces import UserRepository
+from application.user.dtos import UserCreateDTO  #   New DTO
+from shared.exceptions import DomainException
 
 class CreateUserUseCase:
     def __init__(self, user_repository: UserRepository):
