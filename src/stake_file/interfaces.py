@@ -1,4 +1,4 @@
-#   src/domain/user/interfaces.py
+#   src/dev_platform/domain/user/interfaces.py
 from abc import ABC, abstractmethod
 from typing import List
 from domain.user.entities import User

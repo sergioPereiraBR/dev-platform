@@ -1,0 +1,30 @@
+dev_platform
+    +---docs
+    |   +---api
+    |   +---user-guide
+    +---migrations
+    |   +---versions
+    +---scripts
+    +---src
+    |   +---dev_platform
+    |       +---main.py
+    |       +---application
+    |       |   +---user
+    |       |       +--dtos.py
+    |       |       +--usecases.py
+    |       +---domain
+    |       |   +---user
+    |       |       +---entities.py
+    |       |       +---interfaces.py
+    |       +---infrastructure
+    |       |   +---database
+    |       |   |   +---models.py
+    |       |   |   +---repositories.py
+    |       |   |   +---session.py
+    |       |   +---config.py
+    |       +---interface
+    |       |   +---cli
+    |       |       +---user_cli.py
+    |       +---shared
+    |           +---exceptions.py
+    +---tests

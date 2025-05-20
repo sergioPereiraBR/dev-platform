@@ -1,4 +1,4 @@
-#   src/infrastructure/database/repositories.py
+#   src/dev_platform/infrastructure/database/repositories.py
 from typing import List
 from sqlalchemy.orm import Session
 from domain.user.entities import User
