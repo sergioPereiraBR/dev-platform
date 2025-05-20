@@ -8,5 +8,13 @@ class DatabaseException(Exception):
     pass
 
 class DomainError(Exception):
-    """Exception for database-related errors (DomainError)."""
+    """Exception for domain-related errors."""
+    pass
+
+class ConfigurationException(Exception):
+    """Exception for configuration-related errors."""
+    pass
+
+class ValidationException(Exception):
+    """Exception for validation-related errors."""
     pass
