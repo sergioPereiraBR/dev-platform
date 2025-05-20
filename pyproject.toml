@@ -16,7 +16,7 @@ packages = [{include = "dev_platform", from = "src"}]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0"
-black = "^23.0"
+black = "^24.3"
 flake8 = "^6.0"
 alembic = "^1.15.2"
 sqlalchemy = "^2.0.41"
