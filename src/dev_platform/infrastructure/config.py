@@ -1,4 +1,4 @@
-#   src/infrastructure/config.py (similar to your config.py, but in the Infrastructure layer)
+#   src/dev_platform/infrastructure/config.py (similar to your config.py, but in the Infrastructure layer)
 from dotenv import load_dotenv
 import os
 

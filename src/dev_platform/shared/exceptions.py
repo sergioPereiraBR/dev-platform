@@ -1,4 +1,4 @@
-#   src/shared/exceptions.py
+#   src/dev_platform/shared/exceptions.py
 class DomainException(Exception):
     """Exception for domain-related errors (e.g., validation)."""
     pass

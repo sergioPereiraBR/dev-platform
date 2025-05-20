@@ -1,4 +1,4 @@
-#   src/domain/user/entities.py
+#   src/dev_platform/domain/user/entities.py
 from dataclasses import dataclass
 from typing import Optional
 

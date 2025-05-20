@@ -1,4 +1,4 @@
-#   src/infrastructure/database/session.py
+#   src/dev_platform/infrastructure/database/session.py
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from infrastructure.config import DATABASE_URL  #   Assuming this holds the URL

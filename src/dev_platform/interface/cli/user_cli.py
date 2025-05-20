@@ -1,4 +1,4 @@
-#   src/interface/cli/user_cli.py  (formerly user_cli.py, renamed for clarity)
+#   src/dev_platform/interface/cli/user_cli.py  (formerly user_cli.py, renamed for clarity)
 import click
 from application.user.usecases import CreateUserUseCase, ListUsersUseCase
 from application.user.dtos import UserCreateDTO
