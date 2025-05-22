@@ -25,7 +25,6 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=Engine)
 # ou mysql+asyncpg para postgres
 if database_url.startswith(('mysql+aiomysql://', 'postgresql+asyncpg://', 'sqlite+aiosqlite://')): # Adicione outros drivers assíncronos aqui se necessário
     # Usamos a própria database_url, pois ela já está formatada para o async driver
-    print(f"Engine assíncrono: {database_url}")
     AsyncEngine = create_async_engine(
         database_url, # Usamos a URL diretamente, pois esperamos que ela já contenha o driver assíncrono
         pool_size=pool_size,

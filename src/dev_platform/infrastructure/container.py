@@ -1,8 +1,10 @@
 # src/dev_platform/infrastructure/container.py
+# src/dev_platform/infrastructure/container.py
 from typing import Dict, Any, Callable, Type, TypeVar
-from infrastructure.database.session import SessionLocal, get_async_session
+from infrastructure.database.session import get_async_session
 from infrastructure.database.async_repositories import AsyncSQLUserRepository
-from application.user.usecases import CreateUserUseCase, ListUsersUseCase
+from dev_platform.scripts.usecases import CreateUserUseCase, ListUsersUseCase
+from application.user.async_usecases import AsyncCreateUserUseCase, AsyncListUsersUseCase  # ✅ NOVO IMPORT
 from domain.user.interfaces import AsyncUserRepository
 
 T = TypeVar('T')
@@ -41,23 +43,19 @@ class Container:
         cls._instances.clear()
 
 
-# Configuração do container
-async def setup_container():
-    """Configura o container com todas as dependências."""
-    # Repositórios
-    Container.register("async_session", get_async_session)
-    Container.register("user_repository", lambda: AsyncSQLUserRepository(Container.get("async_session")))
-    
-    # Use cases
-    Container.register("create_user_usecase", lambda: CreateUserUseCase(Container.get("user_repository")))
-    Container.register("list_users_usecase", lambda: ListUsersUseCase(Container.get("user_repository")))
+# ✅ CORREÇÃO: Funções para criar dependências assíncronas
+async def create_async_user_repository():
+    """Factory para criar repositório assíncrono."""
+    async with get_async_session() as session:
+        return AsyncSQLUserRepository(session)
 
-# Funções utilitárias para obter dependências específicas
-async def get_user_repository() -> AsyncUserRepository:
-    return Container.get("user_repository")
+async def create_async_create_user_usecase():
+    """Factory para criar use case assíncrono."""
+    repo = await create_async_user_repository()
+    return AsyncCreateUserUseCase(repo)
 
-async def get_create_user_usecase() -> CreateUserUseCase:
-    return Container.get("create_user_usecase")
+async def create_async_list_users_usecase():
+    """Factory para criar use case assíncrono."""
+    repo = await create_async_user_repository()
+    return AsyncListUsersUseCase(repo)
 
-async def get_list_users_usecase() -> ListUsersUseCase:
-    return Container.get("list_users_usecase")
