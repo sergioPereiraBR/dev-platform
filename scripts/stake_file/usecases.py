@@ -6,6 +6,7 @@ from application.user.dtos import UserCreateDTO  #   New DTO
 from shared.exceptions import DomainException
 from shared.logging import logger
 
+
 class CreateUserUseCase:
     def __init__(self, user_repository: UserRepository):
         self.user_repository = user_repository

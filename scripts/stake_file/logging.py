@@ -5,6 +5,7 @@ import os
 import sys
 from datetime import datetime
 
+
 class StructuredLogger:
     def __init__(self, name: str, level=logging.INFO):
         self.logger = logging.getLogger(name)

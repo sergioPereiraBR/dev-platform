@@ -12,7 +12,6 @@ from shared.exceptions import DomainException, DatabaseException
 def cli():
     pass
 
-
 async def async_create_user(name: str, email: str):
     async with AsyncSessionLocal() as session:
         try:

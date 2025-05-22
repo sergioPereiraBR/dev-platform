@@ -2,6 +2,7 @@
 import re
 from shared.exceptions import ValidationException
 
+
 class UserValidator:
     @staticmethod
     def validate_name(name: str) -> None:

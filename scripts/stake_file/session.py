@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from infrastructure.config import CONFIG
 
+
 # Configurações do pool de conexões
 pool_size = CONFIG.get("database.pool_size", 5)
 max_overflow = CONFIG.get("database.max_overflow", 10)
@@ -19,15 +20,36 @@ Engine = create_engine(
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=Engine)
 
-# Engine assíncrono - se a URL for compatível
-if database_url.startswith(('mysql://', 'mysql+pymysql://')):
-    async_database_url = database_url.replace('mysql://', 'mysql+pymysql://')
+
+# Engine assíncrono
+# A URL já deve vir formatada para o driver assíncrono (e.g., mysql+aiomysql://)
+# ou mysql+asyncpg para postgres
+if database_url.startswith(('mysql+aiomysql://', 'postgresql+asyncpg://', 'sqlite+aiosqlite://')): # Adicione outros drivers assíncronos aqui se necessário
+    # Usamos a própria database_url, pois ela já está formatada para o async driver
+    print(f"Engine assíncrono: {database_url}")
     AsyncEngine = create_async_engine(
-        async_database_url,
+        database_url, # Usamos a URL diretamente, pois esperamos que ela já contenha o driver assíncrono
         pool_size=pool_size,
         max_overflow=max_overflow
     )
     AsyncSessionLocal = sessionmaker(class_=AsyncSession, expire_on_commit=False, bind=AsyncEngine)
+else:
+    # Se a URL não for compatível com nenhum driver assíncrono esperado, defina AsyncSessionLocal como None
+    # ou levante um erro apropriado, ou use um stub.
+    # Para evitar ImportError, vamos definir como None e tratar no get_async_session.
+    AsyncSessionLocal = None # Garante que AsyncSessionLocal seja sempre definido
+
+
+# # Engine assíncrono - se a URL for compatível
+# if database_url.startswith(('mysql://', 'mysql+aiomysql://')):
+#     async_database_url = database_url #.replace('mysql://', 'mysql+pymysql://')
+    
+#     AsyncEngine = create_async_engine(
+#         async_database_url,
+#         pool_size=pool_size,
+#         max_overflow=max_overflow
+#     )
+#     AsyncSessionLocal = sessionmaker(class_=AsyncSession, expire_on_commit=False, bind=AsyncEngine)
 
 @contextmanager
 def db_session():
@@ -42,6 +64,7 @@ def db_session():
     finally:
         session.close()
 
+@contextmanager
 async def get_async_session():
     """Context manager para sessões assíncronas de banco de dados."""
     if not 'AsyncSessionLocal' in globals():
@@ -54,41 +77,3 @@ async def get_async_session():
         except Exception:
             await session.rollback()
             raise
-
-
-# from contextlib import contextmanager
-# from sqlalchemy import create_engine
-# from sqlalchemy.orm import sessionmaker
-# from infrastructure.config import DATABASE_URL
-
-# Engine = create_engine(DATABASE_URL)
-# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=Engine)
-
-# @contextmanager
-# def db_session():
-#     """Context manager para sessões de banco de dados."""
-#     session = SessionLocal()
-#     try:
-#         yield session
-#         session.commit()
-#     except Exception:
-#         session.rollback()
-#         raise
-#     finally:
-#         session.close()
-
-# # Exemplo para session.py assíncrono
-# from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-# from sqlalchemy.orm import sessionmaker
-
-# async_engine = create_async_engine(DATABASE_URL)
-# AsyncSessionLocal = sessionmaker(class_=AsyncSession, expire_on_commit=False, bind=async_engine)
-
-# async def get_async_session():
-#     async with AsyncSessionLocal() as session:
-#         try:
-#             yield session
-#             await session.commit()
-#         except Exception:
-#             await session.rollback()
-#             raise

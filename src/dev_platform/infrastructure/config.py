@@ -5,6 +5,7 @@ import json
 from typing import Dict, Any, Optional
 from shared.exceptions import ConfigurationException
 
+
 class Configuration:
     """Classe avançada para gerenciar configurações da aplicação."""
     _instance = None
@@ -90,61 +91,3 @@ class Configuration:
 # Instância Singleton para uso fácil em outros módulos
 CONFIG = Configuration()
 DATABASE_URL = CONFIG.get_database_url()
-
-
-# from dotenv import load_dotenv
-# import os
-# from typing import Dict, Any
-# from shared.exceptions import ConfigurationException
-
-# load_dotenv()
-
-# class Configuration:
-#     """Classe para gerenciar configurações da aplicação."""
-
-#     def __init__(self):
-#         load_dotenv()
-#         self.environment = os.getenv("ENVIRONMENT", "development")
-#         self._load_config()
-    
-#     def _load_config(self):
-#         # Carrega configurações específicas do ambiente
-#         if self.environment == "production":
-#             self._load_production_config()
-#         elif self.environment == "development":
-#             self._load_development_config()
-#         elif self.environment == "testing":
-#             self._load_testing_config()
-
-#     @staticmethod
-#     def get_database_url() -> str:
-#         """Obtém a URL do banco de dados ou lança uma exceção."""
-#         url = os.getenv("DATABASE_URL")
-#         if not url:
-#             # Opção 1: Lançar exceção
-#             raise ConfigurationException("DATABASE_URL environment variable is not set")
-#             # Opção 2: Usar valor padrão SQLite para desenvolvimento
-#             # return "sqlite:///./dev.db"
-#         return url
-    
-#     @staticmethod
-#     def get_config() -> Dict[str, Any]:
-#         """Retorna todas as configurações como um dicionário."""
-#         return {
-#             "database_url": Configuration.get_database_url(),
-#             "environment": os.getenv("ENVIRONMENT", "development"),
-#             "debug": os.getenv("DEBUG", "False").lower() == "true"
-#         }
-
-#     def _load_production_config():
-#         pass
-
-#     def _load_development_config():
-#         pass
-
-#     def _load_testing_config():
-#         pass
-
-# # Para uso fácil em outros módulos
-# CONFIG = Configuration.get_config()
-# DATABASE_URL = CONFIG["database_url"]

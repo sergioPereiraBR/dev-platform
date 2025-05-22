@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from infrastructure.config import CONFIG
 
+
 # Configurações do pool de conexões
 pool_size = CONFIG.get("database.pool_size", 5)
 max_overflow = CONFIG.get("database.max_overflow", 10)
@@ -76,41 +77,3 @@ async def get_async_session():
         except Exception:
             await session.rollback()
             raise
-
-
-# from contextlib import contextmanager
-# from sqlalchemy import create_engine
-# from sqlalchemy.orm import sessionmaker
-# from infrastructure.config import DATABASE_URL
-
-# Engine = create_engine(DATABASE_URL)
-# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=Engine)
-
-# @contextmanager
-# def db_session():
-#     """Context manager para sessões de banco de dados."""
-#     session = SessionLocal()
-#     try:
-#         yield session
-#         session.commit()
-#     except Exception:
-#         session.rollback()
-#         raise
-#     finally:
-#         session.close()
-
-# # Exemplo para session.py assíncrono
-# from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-# from sqlalchemy.orm import sessionmaker
-
-# async_engine = create_async_engine(DATABASE_URL)
-# AsyncSessionLocal = sessionmaker(class_=AsyncSession, expire_on_commit=False, bind=async_engine)
-
-# async def get_async_session():
-#     async with AsyncSessionLocal() as session:
-#         try:
-#             yield session
-#             await session.commit()
-#         except Exception:
-#             await session.rollback()
-#             raise

@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 from domain.user.entities import User
 
+
 class UserRepository(ABC):
     @abstractmethod
     def save(self, user: User) -> User:

@@ -7,6 +7,7 @@ from domain.user.interfaces import AsyncUserRepository
 
 T = TypeVar('T')
 
+
 class Container:
     """Container avançado de injeção de dependências."""
     

@@ -7,6 +7,7 @@ from domain.user.interfaces import AsyncUserRepository  # Precisamos criar esta 
 from infrastructure.database.models import UserModel
 from shared.exceptions import DatabaseException
 
+
 class AsyncSQLUserRepository(AsyncUserRepository):
     def __init__(self, session: AsyncSession):
         self.session = session

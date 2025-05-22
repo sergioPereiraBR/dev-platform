@@ -4,6 +4,7 @@ from typing import Optional
 
 from domain.user.validators import UserValidationService
 
+
 @dataclass
 class User:
     id: Optional[int]
