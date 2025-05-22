@@ -20,7 +20,6 @@ Engine = create_engine(
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=Engine)
 
-
 # Engine assíncrono
 # A URL já deve vir formatada para o driver assíncrono (e.g., mysql+aiomysql://)
 # ou mysql+asyncpg para postgres
@@ -33,23 +32,7 @@ if database_url.startswith(('mysql+aiomysql://', 'postgresql+asyncpg://', 'sqlit
         max_overflow=max_overflow
     )
     AsyncSessionLocal = sessionmaker(class_=AsyncSession, expire_on_commit=False, bind=AsyncEngine)
-else:
-    # Se a URL não for compatível com nenhum driver assíncrono esperado, defina AsyncSessionLocal como None
-    # ou levante um erro apropriado, ou use um stub.
-    # Para evitar ImportError, vamos definir como None e tratar no get_async_session.
-    AsyncSessionLocal = None # Garante que AsyncSessionLocal seja sempre definido
 
-
-# # Engine assíncrono - se a URL for compatível
-# if database_url.startswith(('mysql://', 'mysql+aiomysql://')):
-#     async_database_url = database_url #.replace('mysql://', 'mysql+pymysql://')
-    
-#     AsyncEngine = create_async_engine(
-#         async_database_url,
-#         pool_size=pool_size,
-#         max_overflow=max_overflow
-#     )
-#     AsyncSessionLocal = sessionmaker(class_=AsyncSession, expire_on_commit=False, bind=AsyncEngine)
 
 @contextmanager
 def db_session():
