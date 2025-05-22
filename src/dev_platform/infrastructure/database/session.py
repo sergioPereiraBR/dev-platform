@@ -1,5 +1,5 @@
 # src/dev_platform/infrastructure/database/session.py
-from contextlib import contextmanager
+from contextlib import contextmanager, asynccontextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -64,7 +64,7 @@ def db_session():
     finally:
         session.close()
 
-@contextmanager
+@asynccontextmanager
 async def get_async_session():
     """Context manager para sessões assíncronas de banco de dados."""
     if not 'AsyncSessionLocal' in globals():
