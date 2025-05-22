@@ -42,8 +42,6 @@ class Configuration:
                 "debug": os.getenv("DEBUG", "False").lower() == "true"
             }
         }
-
-        print(f"DEBUG: DATABASE_URL lida do .env: {self.config['database']['url']}")
         
         # Carrega configurações específicas do ambiente, se existirem
         config_file = f"config/{self.environment}.json"
@@ -66,7 +64,7 @@ class Configuration:
         url = self.config.get("database", {}).get("url")
         if not url:
             if self.environment == "development":
-                return "mysql+aiomysql://root:Malato#01@127.0.0.1:3306/user_management" # "sqlite:///./dev.db"
+                return "sqlite:///./dev.db"
             raise ConfigurationException("DATABASE_URL environment variable is not set")
         return url
     

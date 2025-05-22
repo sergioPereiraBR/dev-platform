@@ -19,36 +19,15 @@ Engine = create_engine(
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=Engine)
 
-
-# Engine assíncrono
-# A URL já deve vir formatada para o driver assíncrono (e.g., mysql+aiomysql://)
-# ou mysql+asyncpg para postgres
-if database_url.startswith(('mysql+aiomysql://', 'postgresql+asyncpg://', 'sqlite+aiosqlite://')): # Adicione outros drivers assíncronos aqui se necessário
-    # Usamos a própria database_url, pois ela já está formatada para o async driver
-    print(f"Engine assíncrono: {database_url}")
+# Engine assíncrono - se a URL for compatível
+if database_url.startswith(('mysql://', 'mysql+pymysql://')):
+    async_database_url = database_url.replace('mysql://', 'mysql+pymysql://')
     AsyncEngine = create_async_engine(
-        database_url, # Usamos a URL diretamente, pois esperamos que ela já contenha o driver assíncrono
+        async_database_url,
         pool_size=pool_size,
         max_overflow=max_overflow
     )
     AsyncSessionLocal = sessionmaker(class_=AsyncSession, expire_on_commit=False, bind=AsyncEngine)
-else:
-    # Se a URL não for compatível com nenhum driver assíncrono esperado, defina AsyncSessionLocal como None
-    # ou levante um erro apropriado, ou use um stub.
-    # Para evitar ImportError, vamos definir como None e tratar no get_async_session.
-    AsyncSessionLocal = None # Garante que AsyncSessionLocal seja sempre definido
-
-
-# # Engine assíncrono - se a URL for compatível
-# if database_url.startswith(('mysql://', 'mysql+aiomysql://')):
-#     async_database_url = database_url #.replace('mysql://', 'mysql+pymysql://')
-    
-#     AsyncEngine = create_async_engine(
-#         async_database_url,
-#         pool_size=pool_size,
-#         max_overflow=max_overflow
-#     )
-#     AsyncSessionLocal = sessionmaker(class_=AsyncSession, expire_on_commit=False, bind=AsyncEngine)
 
 @contextmanager
 def db_session():
@@ -63,7 +42,6 @@ def db_session():
     finally:
         session.close()
 
-@contextmanager
 async def get_async_session():
     """Context manager para sessões assíncronas de banco de dados."""
     if not 'AsyncSessionLocal' in globals():
