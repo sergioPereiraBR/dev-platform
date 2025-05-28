@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import os
 import json
 from typing import Dict, Any, Optional
-from shared.exceptions import ConfigurationException
+from domain.user.exceptions import ConfigurationException
 
 
 class Configuration:

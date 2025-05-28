@@ -1,20 +1,21 @@
-# src/dev_platform/shared/logging.py
 import logging
 import json
 import os
 import sys
 from datetime import datetime
+from application.user.ports import Logger as LoggerPort
 
-
-class StructuredLogger:
-    def __init__(self, name: str, level=logging.INFO):
+class StructuredLogger(LoggerPort):
+    def __init__(self, name: str = "DEV Platform", level=logging.INFO):
         self.logger = logging.getLogger(name)
         self.logger.setLevel(level)
         
         if not self.logger.handlers:
             # Console handler
             console_handler = logging.StreamHandler(sys.stdout)
-            console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+            console_handler.setFormatter(
+                logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            )
             self.logger.addHandler(console_handler)
             
             # File handler for errors
@@ -22,7 +23,9 @@ class StructuredLogger:
                 os.makedirs('logs')
             file_handler = logging.FileHandler(f"logs/{datetime.now().strftime('%Y-%m-%d')}.log")
             file_handler.setLevel(logging.ERROR)
-            file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+            file_handler.setFormatter(
+                logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            )
             self.logger.addHandler(file_handler)
     
     def info(self, message: str, **kwargs):
@@ -40,5 +43,3 @@ class StructuredLogger:
             self.logger.log(level, json.dumps(log_data))
         else:
             self.logger.log(level, message)
-
-logger = StructuredLogger("DEV Platform")

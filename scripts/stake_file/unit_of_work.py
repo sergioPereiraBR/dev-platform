@@ -1,0 +1,25 @@
+# src/dev_platform/infrastructure/database/unit_of_work.py
+from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from application.user.ports import UnitOfWork as AbstractUnitOfWork
+from infrastructure.database.session import AsyncSessionLocal
+from infrastructure.database.repositories import SQLUserRepository
+
+class SQLUnitOfWork(AbstractUnitOfWork):
+    def __init__(self):
+        self._session: Optional[AsyncSession] = None
+    
+    async def __aenter__(self):
+        self._session = AsyncSessionLocal()
+        self.users = SQLUserRepository(self._session)
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self._session:
+            if exc_type is not None:
+                await self._session.rollback()
+            await self._session.close()
+    
+    async def commit(self):
+        if self._session:
+            await self._session.commit()

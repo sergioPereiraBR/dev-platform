@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import os
 import json
 from typing import Dict, Any, Optional
-from shared.exceptions import ConfigurationException
+from domain.user.exceptions import ConfigurationException
 
 
 class Configuration:
@@ -43,8 +43,6 @@ class Configuration:
                 "debug": os.getenv("DEBUG", "False").lower() == "true"
             }
         }
-
-        print(f"DEBUG: DATABASE_URL lida do .env: {self.config['database']['url']}")
         
         # Carrega configurações específicas do ambiente, se existirem
         config_file = f"config/{self.environment}.json"

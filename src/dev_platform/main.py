@@ -1,5 +1,5 @@
 #   src/dev_platform/main.py
-from interface.cli.user_cli import cli
+from interface.cli.user_commands import cli
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 # src/dev_platform/infrastructure/database/session.py
-from contextlib import contextmanager, asynccontextmanager
+from contextlib import asynccontextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -33,18 +33,18 @@ if database_url.startswith(('mysql+aiomysql://', 'postgresql+asyncpg://', 'sqlit
     AsyncSessionLocal = sessionmaker(class_=AsyncSession, expire_on_commit=False, bind=AsyncEngine)
 
 
-@contextmanager
-def db_session():
-    """Context manager para sessões síncronas de banco de dados."""
-    session = SessionLocal()
-    try:
-        yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+# @contextmanager
+# def db_session():
+#     """Context manager para sessões síncronas de banco de dados."""
+#     session = SessionLocal()
+#     try:
+#         yield session
+#         session.commit()
+#     except Exception:
+#         session.rollback()
+#         raise
+#     finally:
+#         session.close()
 
 @asynccontextmanager
 async def get_async_session():
@@ -59,3 +59,32 @@ async def get_async_session():
         except Exception:
             await session.rollback()
             raise
+
+# # Abordagem mais sofisticada com Provider
+# class AsyncSessionProvider:
+#     def __init__(self):
+#         self._session: Optional[AsyncSession] = None
+    
+#     async def get_session(self) -> AsyncSession:
+#         if self._session is None:
+#             self._session = AsyncSessionLocal()
+#         return self._session
+    
+#     async def close(self):
+#         if self._session:
+#             await self._session.close()
+#             self._session = None
+
+
+# class AsyncCreateUserUseCase:
+#     def __init__(self, session_provider: AsyncSessionProvider):
+#         self.session_provider = session_provider
+    
+#     async def execute(self, user_create_dto: UserCreateDTO) -> User:
+#         session = await self.session_provider.get_session()
+#         user_repository = AsyncSQLUserRepository(session)
+        
+#         # Lógica do use case...
+#         user = User(id=None, name=user_create_dto.name, email=user_create_dto.email)
+#         user.validate()
+#         return await user_repository.save(user) 
