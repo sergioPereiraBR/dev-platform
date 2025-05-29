@@ -1,3 +1,4 @@
+# .\scripts\tools\stack_files.ps1 ".\src" "py"
 param(
     [Parameter(Mandatory=$true)]
     [string]$TargetPath,

@@ -1,3 +1,4 @@
+# .\scripts\tools\del_folderes.ps1 ".\src" "__pycache__"
 param(
     [Parameter(Mandatory=$true)]
     [string]$PastaRaiz,

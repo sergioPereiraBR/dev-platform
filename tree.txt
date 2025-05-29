@@ -1,0 +1,33 @@
+Listagem de caminhos de pasta para o volume Acervo
+src
+└───dev_platform
+    │   main.py
+    │
+    ├───application
+    │   └───user
+    │           dtos.py
+    │           ports.py
+    │           use_cases.py
+    │
+    ├───domain
+    │   └───user
+    │           entities.py
+    │           exceptions.py
+    │           value_objects.py
+    │
+    ├───infrastructure
+    │   │   composition_root.py
+    │   │   config.py
+    │   │
+    │   ├───database
+    │   │       models.py
+    │   │       repositories.py
+    │   │       session.py
+    │   │       unit_of_work.py
+    │   │
+    │   └───logging
+    │           structured_logger.py
+    │
+    └───interface
+        └───cli
+                
