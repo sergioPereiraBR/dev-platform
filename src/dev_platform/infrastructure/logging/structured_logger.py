@@ -1,3 +1,4 @@
+# src/dev_platform/infrastructure/logging/structured_logger.py
 import logging
 import json
 import os

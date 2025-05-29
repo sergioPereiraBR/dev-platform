@@ -1,4 +1,4 @@
-#   src/dev_platform/shared/exceptions.py
+#   src/dev_platform/domain/user/exceptions.py
 from datetime import datetime
 from typing import Optional, Dict, Any
 

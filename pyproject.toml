@@ -47,4 +47,6 @@ dev-platform = "dev_platform.main:main"  # Isso cria um comando executável
 docs-serve = "mkdocs:serve"  # Iniciar servidor de documentação local
 docs-build = "mkdocs:build"  # Construir a documentação estática
 
-
+[tool.taskipy.tasks]
+list = "poetry run python ./src/dev_platform/main.py list-users"
+clean = '.\\scripts\\tools\\del_folderes.ps1 ".\\src" "__pycache__"'

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import re
 
+
 @dataclass(frozen=True)
 class Email:
     value: str

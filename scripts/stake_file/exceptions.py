@@ -3,6 +3,79 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 
+# Application layer exceptions
+class ApplicationException(Exception):
+    """Base exception for application layer errors."""
+    
+    def __init__(self, message: str, original_exception: Exception = None):
+        self.message = message
+        self.original_exception = original_exception
+        self.timestamp = datetime.now()
+        super().__init__(self.message)
+
+
+class UseCaseException(ApplicationException):
+    """Raised when a use case execution fails."""
+    
+    def __init__(self, use_case_name: str, reason: str, original_exception: Exception = None):
+        self.use_case_name = use_case_name
+        self.reason = reason
+        super().__init__(
+            message=f"Use case '{use_case_name}' failed: {reason}",
+            original_exception=original_exception
+        )
+
+# Infrastructure layer exceptions 
+class InfrastructureException(Exception):
+    """Base exception for infrastructure layer errors."""
+    
+    def __init__(self, message: str, component: str, original_exception: Exception = None):
+        self.message = message
+        self.component = component
+        self.original_exception = original_exception
+        self.timestamp = datetime.now()
+        super().__init__(self.message)
+
+
+class DatabaseException(InfrastructureException):
+    """Raised when database operations fail."""
+    
+    def __init__(self, operation: str, reason: str, original_exception: Exception = None):
+        self.operation = operation
+        self.reason = reason
+        super().__init__(
+            message=f"Database {operation} failed: {reason}",
+            component="database",
+            original_exception=original_exception
+        )
+
+
+class ConfigurationException(InfrastructureException):
+    """Raised when configuration is invalid or missing."""
+    
+    def __init__(self, config_key: str, reason: str):
+        self.config_key = config_key
+        self.reason = reason
+        super().__init__(
+            message=f"Configuration error for '{config_key}': {reason}",
+            component="configuration"
+        )
+
+
+class CacheException(InfrastructureException):
+    """Raised when cache operations fail."""
+    
+    def __init__(self, operation: str, key: str, reason: str, original_exception: Exception = None):
+        self.operation = operation
+        self.key = key
+        self.reason = reason
+        super().__init__(
+            message=f"Cache {operation} failed for key '{key}': {reason}",
+            component="cache",
+            original_exception=original_exception
+        )
+
+# Exceções Específicas do Domínio
 class DomainException(Exception):
     """Base exception for all domain-related errors."""
     
@@ -91,7 +164,6 @@ class EmailDomainNotAllowedException(DomainException):
             }
         )
 
-
 class UserOperationException(DomainException):
     """Raised when a user operation fails."""
     
@@ -105,20 +177,8 @@ class UserOperationException(DomainException):
             details={"operation": operation, "user_id": user_id, "reason": reason}
         )
 
-class DomainException(Exception):
-    """Exception for domain-related errors (e.g., validation)."""
-    pass
-
-class DatabaseException(Exception):
-    """Exception for database-related errors."""
-    pass
-
 class DomainError(Exception):
     """Exception for domain-related errors."""
-    pass
-
-class ConfigurationException(Exception):
-    """Exception for configuration-related errors."""
     pass
 
 class ValidationException(Exception):
