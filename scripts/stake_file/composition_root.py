@@ -1,3 +1,4 @@
+# src/dev_platform/infrastructure/composition_root.py
 from application.user.use_cases import CreateUserUseCase, ListUsersUseCase
 from infrastructure.database.unit_of_work import SQLUnitOfWork
 from infrastructure.logging.structured_logger import StructuredLogger
