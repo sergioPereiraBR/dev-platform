@@ -1,3 +1,6 @@
+# NOTA
+# Commit do arquivo poetry.lock permite criar um ambiente determinístico
+
 # Ambientes virtuais
 .venv/
 venv/
