@@ -65,7 +65,7 @@ class Configuration:
         url = self.config.get("database", {}).get("url")
         if not url:
             if self.environment == "development":
-                return "mysql+aiomysql://root:Malato#01@127.0.0.1:3306/user_management" # "sqlite:///./dev.db"
+                return os.getenv("DATABASE_URL") # "mysql+aiomysql://root:Malato#01@127.0.0.1:3306/user_management" # "sqlite:///./dev.db"
             raise ConfigurationException("DATABASE_URL environment variable is not set")
         return url
     
