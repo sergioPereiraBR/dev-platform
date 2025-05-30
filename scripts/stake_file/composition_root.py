@@ -25,35 +25,42 @@ class CompositionRoot:
     def __init__(self, config: dict = None):
         self._config = config or {}
         self._logger = StructuredLogger()
+        self._uow = None
+
+    @property
+    def uow(self) -> SQLUnitOfWork:
+        if self._uow is None:
+            self._uow = SQLUnitOfWork()
+        return self._uow
     
     # Use Cases
     def create_user_use_case(self) -> CreateUserUseCase:
         return CreateUserUseCase(
-            uow=SQLUnitOfWork(),
+            uow=self.uow,
             logger=self._logger
         )
     
     def list_users_use_case(self) -> ListUsersUseCase:
         return ListUsersUseCase(
-            uow=SQLUnitOfWork(),
+            uow=self.uow,
             logger=self._logger
         )
     
     def update_user_use_case(self) -> UpdateUserUseCase:
         return UpdateUserUseCase(
-            uow=SQLUnitOfWork(),
+            uow=self.uow,
             logger=self._logger
         )
     
     def get_user_use_case(self) -> GetUserUseCase:
         return GetUserUseCase(
-            uow=SQLUnitOfWork(),
+            uow=self.uow,
             logger=self._logger
         )
     
     def delete_user_use_case(self) -> DeleteUserUseCase:
         return DeleteUserUseCase(
-            uow=SQLUnitOfWork(),
+            uow=self.uow,
             logger=self._logger
         )
     

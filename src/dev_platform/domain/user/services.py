@@ -54,58 +54,6 @@ class UserUniquenessService:
             from domain.user.exceptions import UserAlreadyExistsException
             raise UserAlreadyExistsException(email)
 
-
-class UserDomainService:
-    """Orchestrates domain operations."""
-    
-    def __init__(self, user_repository, validation_service: UserValidationService = None):
-        self._repository = user_repository
-        self._validation_service = validation_service or UserValidationService()
-        self._uniqueness_service = UserUniquenessService(user_repository)
-    
-    async def validate_new_user(self, user: User) -> None:
-        """Validate a new user completely."""
-        await self._validation_service.validate(user)
-        await self._uniqueness_service.ensure_email_is_unique(user.email.value)
-    
-    async def validate_user_update(self, user_id: int, updated_user: User) -> None:
-        """Validate user update."""
-        await self._validation_service.validate(updated_user)
-        await self._uniqueness_service.ensure_email_is_unique(
-            updated_user.email.value, 
-            exclude_user_id=user_id
-        )
-
-
-# Factory simplificada
-class DomainServiceFactory:
-    @staticmethod
-    def create_user_domain_service(
-        user_repository, 
-        enable_profanity_filter: bool = False,
-        allowed_domains: List[str] = None,
-        business_hours_only: bool = False
-    ) -> UserDomainService:
-        
-        rules = [
-            EmailFormatAdvancedValidationRule(),
-            NameContentValidationRule(),
-        ]
-        
-        if enable_profanity_filter:
-            forbidden_words = ["badword1", "badword2"]
-            rules.append(NameProfanityValidationRule(forbidden_words))
-        
-        if allowed_domains:
-            rules.append(EmailDomainValidationRule(allowed_domains))
-        
-        if business_hours_only:
-            rules.append(BusinessHoursValidationRule(business_hours_only))
-        
-        validation_service = UserValidationService(rules)
-        return UserDomainService(user_repository, validation_service)
-
-
 class ValidationRule(ABC):
     """Base class for validation rules."""
     
@@ -264,7 +212,7 @@ class BusinessHoursValidationRule(ValidationRule):
     def rule_name(self) -> str:
         return "business_hours_validation"
 
-
+# ==========================================================================================================================================
 class UserDomainService:
     """Service for complex user domain validations and business rules."""
     
