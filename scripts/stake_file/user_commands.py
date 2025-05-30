@@ -31,6 +31,7 @@ class UserCommands:
                 result.append(f"ID: {user.id}, Name: {user.name}, Email: {user.email}")
             return result
         except Exception as e:
+            print("list all users")
             return [f"Error: {e}"]
 
 @click.group()

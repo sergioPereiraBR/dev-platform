@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from domain.user.entities import User
 from domain.user.exceptions import (
     UserAlreadyExistsException,
+    UserNotFoundException,
     EmailDomainNotAllowedException,
     UserValidationException,
     InvalidUserDataException
@@ -33,7 +34,7 @@ class EmailDomainValidationRule(ValidationRule):
     """Validates that email domain is in allowed list."""
     
     def __init__(self, allowed_domains: List[str]):
-        self.allowed_domains = set(allowed_domains)
+        self.allowed_domains = set(domain.lower() for domain in allowed_domains)
     
     async def validate(self, user: User) -> Optional[str]:
         email_domain = user.email.value.split('@')[1].lower()
@@ -124,9 +125,10 @@ class NameContentValidationRule(ValidationRule):
             return "Name cannot contain numbers"
         
         # Check for special characters (allow only letters, spaces, hyphens, apostrophes)
-        allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ -'")
+        allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ -'àáâãèéêìíîòóôõùúûçÀÁÂÃÈÉÊÌÍÎÒÓÔÕÙÚÛÇ")
         if not all(char in allowed_chars for char in name):
-            return "Name contains invalid characters"
+            invalid_chars = [char for char in name if char not in allowed_chars]
+            return f"Name contains invalid characters: {', '.join(set(invalid_chars))}"
         
         # Check minimum word count
         words = name.split()
@@ -143,6 +145,31 @@ class NameContentValidationRule(ValidationRule):
     @property
     def rule_name(self) -> str:
         return "name_content_validation"
+
+
+class BusinessHoursValidationRule(ValidationRule):
+    """Example rule that validates based on business hours."""
+    
+    def __init__(self, business_hours_only: bool = False):
+        self.business_hours_only = business_hours_only
+    
+    async def validate(self, user: User) -> Optional[str]:
+        if not self.business_hours_only:
+            return None
+            
+        now = datetime.now()
+        # Check if it's business hours (9 AM to 5 PM, Monday to Friday)
+        if now.weekday() >= 5:  # Saturday or Sunday
+            return "User registration only allowed during business days"
+        
+        if now.hour < 9 or now.hour >= 17:
+            return "User registration only allowed during business hours (9 AM - 5 PM)"
+        
+        return None
+    
+    @property
+    def rule_name(self) -> str:
+        return "business_hours_validation"
 
 
 class UserDomainService:
@@ -241,3 +268,101 @@ class UserDomainService:
             rule.rule_name: rule.__class__.__doc__ or "No description available"
             for rule in self._validation_rules
         }
+    
+    async def validate_user_creation_constraints(self, user: User) -> None:
+        """
+        Validate constraints specific to user creation.
+        This can include rate limiting, domain restrictions, etc.
+        """
+        validation_errors = {}
+        
+        # Example: Check if we've reached user limit for the day
+        # This is just an example - you'd implement based on your business rules
+        try:
+            current_count = await self._repository.count()
+            if current_count >= 10000:  # Example limit
+                validation_errors["system_limit"] = "Maximum number of users reached"
+        except Exception as e:
+            validation_errors["system_check"] = f"Unable to verify system constraints: {str(e)}"
+        
+        if validation_errors:
+            raise UserValidationException(validation_errors)
+    
+    async def validate_business_domain_rules(self, user: User, domain_whitelist: List[str] = None) -> None:
+        """
+        Validate business-specific domain rules.
+        """
+        if domain_whitelist:
+            email_domain = user.email.value.split('@')[1].lower()
+            if email_domain not in [d.lower() for d in domain_whitelist]:
+                raise EmailDomainNotAllowedException(
+                    user.email.value, 
+                    email_domain, 
+                    domain_whitelist
+                )
+
+
+class UserAnalyticsService:
+    """Service for user analytics and reporting."""
+    
+    def __init__(self, user_repository):
+        self._repository = user_repository
+    
+    async def get_user_statistics(self) -> Dict[str, int]:
+        """Get basic user statistics."""
+        try:
+            total_users = await self._repository.count()
+            
+            # You could add more analytics here
+            return {
+                "total_users": total_users,
+                # Add more metrics as needed
+            }
+        except Exception as e:
+            raise RuntimeError(f"Failed to get user statistics: {str(e)}")
+    
+    async def find_users_by_domain(self, domain: str) -> List[User]:
+        """Find all users with emails from a specific domain."""
+        try:
+            all_users = await self._repository.find_all()
+            return [
+                user for user in all_users 
+                if user.email.value.split('@')[1].lower() == domain.lower()
+            ]
+        except Exception as e:
+            raise RuntimeError(f"Failed to find users by domain: {str(e)}")
+
+
+# Factory for creating domain services with common configurations
+class DomainServiceFactory:
+    @staticmethod
+    def create_user_domain_service(
+        user_repository, 
+        enable_profanity_filter: bool = False,
+        allowed_domains: List[str] = None,
+        business_hours_only: bool = False
+    ) -> UserDomainService:
+        """Create a UserDomainService with common rule configurations."""
+        
+        rules = [
+            EmailFormatAdvancedValidationRule(),
+            NameContentValidationRule(),
+        ]
+        
+        if enable_profanity_filter:
+            # Add common profanity words - in production, load from config/database
+            forbidden_words = ["badword1", "badword2"]  # Replace with actual list
+            rules.append(NameProfanityValidationRule(forbidden_words))
+        
+        if allowed_domains:
+            rules.append(EmailDomainValidationRule(allowed_domains))
+        
+        if business_hours_only:
+            rules.append(BusinessHoursValidationRule(business_hours_only))
+        
+        return UserDomainService(user_repository, rules)
+    
+    @staticmethod
+    def create_analytics_service(user_repository) -> UserAnalyticsService:
+        """Create a UserAnalyticsService."""
+        return UserAnalyticsService(user_repository)

@@ -7,6 +7,8 @@ param(
     [string]$NomePasta
 )
 
+Write-Host "Executando del_folderes.ps1 na pasta '$PastaRaiz' para apagar pastas e subpastas com nome '$NomePasta'." -ForegroundColor Blue
+
 # Verifica se a pasta raiz existe
 if (-not (Test-Path -Path $PastaRaiz -PathType Container)) {
     Write-Error "A pasta raiz '$PastaRaiz' não existe ou não é uma pasta válida."
