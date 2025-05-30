@@ -12,36 +12,6 @@ from domain.user.exceptions import (
     InvalidUserDataException
 )
 
-
-class UserValidationService:
-    """Service focused solely on validation rules."""
-    
-    def __init__(self, validation_rules: List['ValidationRule'] = None):
-        self._validation_rules = validation_rules or []
-        self._setup_default_rules()
-    
-    def _setup_default_rules(self):
-        if not self._validation_rules:
-            self._validation_rules = [
-                EmailFormatAdvancedValidationRule(),
-                NameContentValidationRule(),
-            ]
-    
-    async def validate(self, user: User) -> None:
-        validation_errors = {}
-        
-        for rule in self._validation_rules:
-            try:
-                error_message = await rule.validate(user)
-                if error_message:
-                    validation_errors[rule.rule_name] = error_message
-            except Exception as e:
-                validation_errors[rule.rule_name] = f"Validation rule failed: {str(e)}"
-        
-        if validation_errors:
-            raise UserValidationException(validation_errors)
-
-
 class UserUniquenessService:
     """Service focused on uniqueness validation."""
     
@@ -51,7 +21,7 @@ class UserUniquenessService:
     async def ensure_email_is_unique(self, email: str, exclude_user_id: int = None) -> None:
         existing_user = await self._repository.find_by_email(email)
         if existing_user and (exclude_user_id is None or existing_user.id != exclude_user_id):
-            from domain.user.exceptions import UserAlreadyExistsException
+            # from domain.user.exceptions import UserAlreadyExistsException
             raise UserAlreadyExistsException(email)
 
 class ValidationRule(ABC):
