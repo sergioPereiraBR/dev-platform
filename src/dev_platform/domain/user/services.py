@@ -119,6 +119,11 @@ class EmailFormatAdvancedValidationRule(ValidationRule):
 
 class NameContentValidationRule(ValidationRule):
     """Validates name content and format."""
+
+    def __init__(self, allowed_chars: Optional[Set[str]] = None):
+        if allowed_chars is None:
+            allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ -'àáâãèéêìíîòóôõùúûçÀÁÂÃÈÉÊÌÍÎÒÓÔÕÙÚÛÇ")  # Carregue de config externa
+        self.allowed_chars = allowed_chars
     
     async def validate(self, user: User) -> Optional[str]:
         name = user.name.value
@@ -136,9 +141,8 @@ class NameContentValidationRule(ValidationRule):
             return "Name cannot contain numbers"
         
         # Check for special characters (allow only letters, spaces, hyphens, apostrophes)
-        allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ -'àáâãèéêìíîòóôõùúûçÀÁÂÃÈÉÊÌÍÎÒÓÔÕÙÚÛÇ")
-        if not all(char in allowed_chars for char in name):
-            invalid_chars = [char for char in name if char not in allowed_chars]
+        if not all(char in self.allowed_chars for char in name):
+            invalid_chars = [char for char in name if char not in self.allowed_chars]
             return f"Name contains invalid characters: {', '.join(set(invalid_chars))}"
         
         # Check minimum word count
