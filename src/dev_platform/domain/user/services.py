@@ -13,6 +13,99 @@ from domain.user.exceptions import (
 )
 
 
+class UserValidationService:
+    """Service focused solely on validation rules."""
+    
+    def __init__(self, validation_rules: List['ValidationRule'] = None):
+        self._validation_rules = validation_rules or []
+        self._setup_default_rules()
+    
+    def _setup_default_rules(self):
+        if not self._validation_rules:
+            self._validation_rules = [
+                EmailFormatAdvancedValidationRule(),
+                NameContentValidationRule(),
+            ]
+    
+    async def validate(self, user: User) -> None:
+        validation_errors = {}
+        
+        for rule in self._validation_rules:
+            try:
+                error_message = await rule.validate(user)
+                if error_message:
+                    validation_errors[rule.rule_name] = error_message
+            except Exception as e:
+                validation_errors[rule.rule_name] = f"Validation rule failed: {str(e)}"
+        
+        if validation_errors:
+            raise UserValidationException(validation_errors)
+
+
+class UserUniquenessService:
+    """Service focused on uniqueness validation."""
+    
+    def __init__(self, user_repository):
+        self._repository = user_repository
+    
+    async def ensure_email_is_unique(self, email: str, exclude_user_id: int = None) -> None:
+        existing_user = await self._repository.find_by_email(email)
+        if existing_user and (exclude_user_id is None or existing_user.id != exclude_user_id):
+            from domain.user.exceptions import UserAlreadyExistsException
+            raise UserAlreadyExistsException(email)
+
+
+class UserDomainService:
+    """Orchestrates domain operations."""
+    
+    def __init__(self, user_repository, validation_service: UserValidationService = None):
+        self._repository = user_repository
+        self._validation_service = validation_service or UserValidationService()
+        self._uniqueness_service = UserUniquenessService(user_repository)
+    
+    async def validate_new_user(self, user: User) -> None:
+        """Validate a new user completely."""
+        await self._validation_service.validate(user)
+        await self._uniqueness_service.ensure_email_is_unique(user.email.value)
+    
+    async def validate_user_update(self, user_id: int, updated_user: User) -> None:
+        """Validate user update."""
+        await self._validation_service.validate(updated_user)
+        await self._uniqueness_service.ensure_email_is_unique(
+            updated_user.email.value, 
+            exclude_user_id=user_id
+        )
+
+
+# Factory simplificada
+class DomainServiceFactory:
+    @staticmethod
+    def create_user_domain_service(
+        user_repository, 
+        enable_profanity_filter: bool = False,
+        allowed_domains: List[str] = None,
+        business_hours_only: bool = False
+    ) -> UserDomainService:
+        
+        rules = [
+            EmailFormatAdvancedValidationRule(),
+            NameContentValidationRule(),
+        ]
+        
+        if enable_profanity_filter:
+            forbidden_words = ["badword1", "badword2"]
+            rules.append(NameProfanityValidationRule(forbidden_words))
+        
+        if allowed_domains:
+            rules.append(EmailDomainValidationRule(allowed_domains))
+        
+        if business_hours_only:
+            rules.append(BusinessHoursValidationRule(business_hours_only))
+        
+        validation_service = UserValidationService(rules)
+        return UserDomainService(user_repository, validation_service)
+
+
 class ValidationRule(ABC):
     """Base class for validation rules."""
     
