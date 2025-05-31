@@ -35,6 +35,15 @@ class InfrastructureException(Exception):
         self.original_exception = original_exception
         self.timestamp = datetime.now()
         super().__init__(self.message)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert exception to dictionary for logging/serialization."""
+        return {
+            "message": self.message,
+            "component": self.component,
+            "timestamp": self.timestamp.isoformat(),
+            "original_error": str(self.original_exception) if self.original_exception else None
+        }
 
 
 class DatabaseException(InfrastructureException):
@@ -44,10 +53,19 @@ class DatabaseException(InfrastructureException):
         self.operation = operation
         self.reason = reason
         super().__init__(
-            message=f"Database {operation} failed: {reason}",
+            message=f"Database operation '{operation}' failed: {reason}",
             component="database",
             original_exception=original_exception
         )
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Extended dictionary representation for database errors."""
+        base_dict = super().to_dict()
+        base_dict.update({
+            "operation": self.operation,
+            "reason": self.reason
+        })
+        return base_dict
 
 
 class ConfigurationException(InfrastructureException):
@@ -74,6 +92,50 @@ class CacheException(InfrastructureException):
             component="cache",
             original_exception=original_exception
         )
+
+
+# Repository-specific exceptions
+class RepositoryException(InfrastructureException):
+    """Base exception for repository layer errors."""
+    
+    def __init__(self, repository_name: str, operation: str, reason: str, original_exception: Exception = None):
+        self.repository_name = repository_name
+        self.operation = operation
+        self.reason = reason
+        super().__init__(
+            message=f"Repository '{repository_name}' {operation} failed: {reason}",
+            component="repository",
+            original_exception=original_exception
+        )
+
+
+class DataIntegrityException(RepositoryException):
+    """Raised when data integrity constraints are violated."""
+    
+    def __init__(self, constraint_name: str, details: str, original_exception: Exception = None):
+        self.constraint_name = constraint_name
+        self.details = details
+        super().__init__(
+            repository_name="database",
+            operation="constraint_validation",
+            reason=f"Constraint '{constraint_name}' violated: {details}",
+            original_exception=original_exception
+        )
+
+
+class DataCorruptionException(RepositoryException):
+    """Raised when data corruption is detected."""
+    
+    def __init__(self, entity_type: str, entity_id: str, corruption_details: str):
+        self.entity_type = entity_type
+        self.entity_id = entity_id
+        self.corruption_details = corruption_details
+        super().__init__(
+            repository_name="database",
+            operation="data_validation",
+            reason=f"{entity_type} {entity_id} has corrupted data: {corruption_details}"
+        )
+
 
 # Exceções Específicas do Domínio
 class DomainException(Exception):
@@ -164,6 +226,7 @@ class EmailDomainNotAllowedException(DomainException):
             }
         )
 
+
 class UserOperationException(DomainException):
     """Raised when a user operation fails."""
     
@@ -177,10 +240,29 @@ class UserOperationException(DomainException):
             details={"operation": operation, "user_id": user_id, "reason": reason}
         )
 
-class DomainError(Exception):
-    """Exception for domain-related errors."""
-    pass
 
-class ValidationException(Exception):
-    """Exception for validation-related errors."""
-    pass
+# Compatibility aliases (deprecated, use specific exceptions above)
+class DomainError(DomainException):
+    """Exception for domain-related errors. DEPRECATED: Use DomainException instead."""
+    
+    def __init__(self, message: str):
+        import warnings
+        warnings.warn(
+            "DomainError is deprecated. Use DomainException instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        super().__init__(message)
+
+
+class ValidationException(DomainException):
+    """Exception for validation-related errors. DEPRECATED: Use UserValidationException instead."""
+    
+    def __init__(self, message: str):
+        import warnings
+        warnings.warn(
+            "ValidationException is deprecated. Use UserValidationException instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        super().__init__(message)

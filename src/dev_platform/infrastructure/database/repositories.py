@@ -2,10 +2,16 @@
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import delete
+from sqlalchemy import delete, func
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from application.user.ports import UserRepository
 from domain.user.entities import User
 from domain.user.value_objects import UserName, Email
+from domain.user.exceptions import (
+    DatabaseException,
+    UserAlreadyExistsException,
+    UserNotFoundException
+)
 from infrastructure.database.models import UserModel
 
 
@@ -13,7 +19,44 @@ class SQLUserRepository(UserRepository):
     def __init__(self, session: AsyncSession):
         self._session = session
     
+    def _handle_database_error(self, operation: str, error: Exception, **context):
+        """Centralized error handling for database operations."""
+        if isinstance(error, IntegrityError):
+            # Check if it's a unique constraint violation
+            if "email" in str(error.orig).lower() and "unique" in str(error.orig).lower():
+                email = context.get('email', 'unknown')
+                raise UserAlreadyExistsException(email)
+        
+        # Log context information for debugging
+        context_str = ", ".join([f"{k}={v}" for k, v in context.items()])
+        error_msg = f"{operation} failed"
+        if context_str:
+            error_msg += f" ({context_str})"
+        
+        raise DatabaseException(
+            operation=operation,
+            reason=str(error),
+            original_exception=error
+        )
+    
+    def _convert_to_domain_user(self, db_user: UserModel) -> User:
+        """Convert database model to domain entity."""
+        try:
+            return User(
+                id=db_user.id,
+                name=UserName(db_user.name),
+                email=Email(db_user.email)
+            )
+        except ValueError as e:
+            # This should not happen if database constraints are properly set
+            raise DatabaseException(
+                operation="data_conversion",
+                reason=f"Invalid data in database: {str(e)}",
+                original_exception=e
+            )
+    
     async def save(self, user: User) -> User:
+        """Save a user to the database."""
         try:
             if user.id is None:
                 # Create new user
@@ -24,7 +67,7 @@ class SQLUserRepository(UserRepository):
                 self._session.add(db_user)
                 await self._session.flush()
                 
-                # Return user with the ID
+                # Return user with the generated ID
                 return User(
                     id=db_user.id,
                     name=user.name,
@@ -38,7 +81,7 @@ class SQLUserRepository(UserRepository):
                 db_user = result.scalars().first()
                 
                 if not db_user:
-                    raise ValueError(f"User with ID {user.id} not found")
+                    raise UserNotFoundException(str(user.id))
                 
                 db_user.name = user.name.value
                 db_user.email = user.email.value
@@ -50,11 +93,29 @@ class SQLUserRepository(UserRepository):
                     email=user.email
                 )
                 
+        except UserNotFoundException:
+            # Re-raise domain exceptions as-is
+            raise
+        except UserAlreadyExistsException:
+            # Re-raise domain exceptions as-is
+            raise
+        except SQLAlchemyError as e:
+            self._handle_database_error(
+                operation="save_user",
+                error=e,
+                user_id=user.id,
+                email=user.email.value
+            )
         except Exception as e:
-            await self._session.rollback()
-            raise RuntimeError(f"Error saving user: {e}")
+            self._handle_database_error(
+                operation="save_user",
+                error=e,
+                user_id=user.id,
+                email=user.email.value
+            )
     
     async def find_by_email(self, email: str) -> Optional[User]:
+        """Find a user by email address."""
         try:
             result = await self._session.execute(
                 select(UserModel).where(UserModel.email == email)
@@ -62,31 +123,46 @@ class SQLUserRepository(UserRepository):
             db_user = result.scalars().first()
             
             if db_user:
-                return User(
-                    id=db_user.id,
-                    name=UserName(db_user.name),
-                    email=Email(db_user.email)
-                )
+                return self._convert_to_domain_user(db_user)
             return None
+            
+        except SQLAlchemyError as e:
+            self._handle_database_error(
+                operation="find_by_email",
+                error=e,
+                email=email
+            )
         except Exception as e:
-            raise RuntimeError(f"Error finding user by email: {e}")
+            self._handle_database_error(
+                operation="find_by_email",
+                error=e,
+                email=email
+            )
     
     async def find_all(self) -> List[User]:
+        """Find all users in the database."""
         try:
             result = await self._session.execute(select(UserModel))
             db_users = result.scalars().all()
+            
             return [
-                User(
-                    id=u.id,
-                    name=UserName(u.name),
-                    email=Email(u.email)
-                )
-                for u in db_users
+                self._convert_to_domain_user(db_user)
+                for db_user in db_users
             ]
+            
+        except SQLAlchemyError as e:
+            self._handle_database_error(
+                operation="find_all_users",
+                error=e
+            )
         except Exception as e:
-            raise RuntimeError(f"Error finding all users: {e}")
+            self._handle_database_error(
+                operation="find_all_users",
+                error=e
+            )
     
     async def find_by_id(self, user_id: int) -> Optional[User]:
+        """Find a user by ID."""
         try:
             result = await self._session.execute(
                 select(UserModel).where(UserModel.id == user_id)
@@ -94,24 +170,56 @@ class SQLUserRepository(UserRepository):
             db_user = result.scalars().first()
             
             if db_user:
-                return User(
-                    id=db_user.id,
-                    name=UserName(db_user.name),
-                    email=Email(db_user.email)
-                )
+                return self._convert_to_domain_user(db_user)
             return None
+            
+        except SQLAlchemyError as e:
+            self._handle_database_error(
+                operation="find_by_id",
+                error=e,
+                user_id=user_id
+            )
         except Exception as e:
-            raise RuntimeError(f"Error finding user by id: {e}")
+            self._handle_database_error(
+                operation="find_by_id",
+                error=e,
+                user_id=user_id
+            )
     
     async def delete(self, user_id: int) -> bool:
+        """Delete a user by ID."""
         try:
+            # First check if user exists
+            existing_user = await self.find_by_id(user_id)
+            if not existing_user:
+                raise UserNotFoundException(str(user_id))
+            
+            # Perform deletion
             result = await self._session.execute(
                 delete(UserModel).where(UserModel.id == user_id)
             )
-            return result.rowcount > 0
+            
+            success = result.rowcount > 0
+            if success:
+                await self._session.flush()
+            
+            return success
+            
+        except UserNotFoundException:
+            # Re-raise domain exceptions as-is
+            raise
+        except SQLAlchemyError as e:
+            self._handle_database_error(
+                operation="delete_user",
+                error=e,
+                user_id=user_id
+            )
         except Exception as e:
-            await self._session.rollback()
-            raise RuntimeError(f"Error deleting user: {e}")
+            self._handle_database_error(
+                operation="delete_user",
+                error=e,
+                user_id=user_id
+            )
     
     async def find_by_name_contains(self, name_part: str) -> List[User]:
         """Find users whose name contains the given string."""
@@ -120,24 +228,78 @@ class SQLUserRepository(UserRepository):
                 select(UserModel).where(UserModel.name.contains(name_part))
             )
             db_users = result.scalars().all()
+            
             return [
-                User(
-                    id=u.id,
-                    name=UserName(u.name),
-                    email=Email(u.email)
-                )
-                for u in db_users
+                self._convert_to_domain_user(db_user)
+                for db_user in db_users
             ]
+            
+        except SQLAlchemyError as e:
+            self._handle_database_error(
+                operation="find_by_name_contains",
+                error=e,
+                name_part=name_part
+            )
         except Exception as e:
-            raise RuntimeError(f"Error searching users by name: {e}")
+            self._handle_database_error(
+                operation="find_by_name_contains",
+                error=e,
+                name_part=name_part
+            )
     
     async def count(self) -> int:
         """Count total number of users."""
         try:
-            from sqlalchemy import func
             result = await self._session.execute(
                 select(func.count(UserModel.id))
             )
-            return result.scalar()
+            count = result.scalar()
+            return count if count is not None else 0
+            
+        except SQLAlchemyError as e:
+            self._handle_database_error(
+                operation="count_users",
+                error=e
+            )
         except Exception as e:
-            raise RuntimeError(f"Error counting users: {e}")
+            self._handle_database_error(
+                operation="count_users",
+                error=e
+            )
+
+
+class RepositoryExceptionHandler:
+    """Utility class for handling repository exceptions consistently."""
+    
+    @staticmethod
+    def handle_sqlalchemy_error(operation: str, error: SQLAlchemyError, **context):
+        """Handle SQLAlchemy specific errors."""
+        if isinstance(error, IntegrityError):
+            if "email" in str(error.orig).lower() and "unique" in str(error.orig).lower():
+                email = context.get('email', 'unknown')
+                raise UserAlreadyExistsException(email)
+        
+        context_str = ", ".join([f"{k}={v}" for k, v in context.items()])
+        error_msg = f"{operation} failed"
+        if context_str:
+            error_msg += f" ({context_str})"
+        
+        raise DatabaseException(
+            operation=operation,
+            reason=str(error),
+            original_exception=error
+        )
+    
+    @staticmethod
+    def handle_generic_error(operation: str, error: Exception, **context):
+        """Handle generic errors."""
+        context_str = ", ".join([f"{k}={v}" for k, v in context.items()])
+        error_msg = f"{operation} failed"
+        if context_str:
+            error_msg += f" ({context_str})"
+        
+        raise DatabaseException(
+            operation=operation,
+            reason=str(error),
+            original_exception=error
+        )
