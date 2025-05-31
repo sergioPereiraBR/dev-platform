@@ -23,9 +23,9 @@ class SQLUnitOfWork(AbstractUnitOfWork):
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         try:
             if exc_type is None:
-                await self.commit()
+                await self._session.commit()
             else:
-                await self.rollback()
+                await self._session.rollback()
         finally:
             await self._session.close()
     
