@@ -3,17 +3,19 @@ import asyncio
 import click
 from application.user.dtos import UserCreateDTO
 from infrastructure.composition_root import CompositionRoot
+from infrastructure.config import CONFIG
 
 class UserCommands:
     def __init__(self):
-        self._composition_root = CompositionRoot()
+        # CORRIGIDO: Passar configuração para o CompositionRoot
+        self._composition_root = CompositionRoot(config=CONFIG.get_config())
     
     async def create_user(self, name: str, email: str) -> str:
         try:
             use_case = self._composition_root.create_user_use_case()
             dto = UserCreateDTO(name=name, email=email)
             user = await use_case.execute(dto)
-            return f"User created: {user.name} ({user.email}) with ID: {user.id}"
+            return f"User created: {user.name.value} ({user.email.value}) with ID: {user.id}"  # CORRIGIDO: .value
         except ValueError as e:
             return f"Validation Error: {e}"
         except Exception as e:
@@ -28,7 +30,8 @@ class UserCommands:
             
             result = []
             for user in users:
-                result.append(f"ID: {user.id}, Name: {user.name}, Email: {user.email}")
+                # CORRIGIDO: Acessar .value dos value objects
+                result.append(f"ID: {user.id}, Name: {user.name.value}, Email: {user.email.value}")
             return result
         except Exception as e:
             return [f"Error: {e}"]
