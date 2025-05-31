@@ -19,6 +19,18 @@ class UserRepository(ABC):
     @abstractmethod
     async def find_by_id(self, user_id: int) -> Optional[User]:
         pass
+    
+    @abstractmethod
+    async def delete(self, user_id: int) -> bool:
+        pass
+
+    @abstractmethod
+    async def find_by_name_contains(self, name_part: str) -> List[User]:
+        pass
+    
+    @abstractmethod
+    async def count(self) -> int:
+        pass
 
 class Logger(ABC):
     @abstractmethod

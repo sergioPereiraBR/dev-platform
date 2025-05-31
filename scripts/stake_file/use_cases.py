@@ -29,6 +29,7 @@ class BaseUseCase:
 
 
 class CreateUserUseCase(BaseUseCase):
+    # CORRIGIDO: Adicionado domain_service_factory como parâmetro
     def __init__(self, uow: UnitOfWork, logger: Logger, domain_service_factory: DomainServiceFactory):
         super().__init__(uow, logger)
         self._domain_service_factory = domain_service_factory
@@ -46,8 +47,8 @@ class CreateUserUseCase(BaseUseCase):
                     self._uow.users
                 )
                 
-                # Validate all business rules
-                await domain_service.validate_new_user(user)
+                # CORRIGIDO: Método correto é validate_business_rules
+                await domain_service.validate_business_rules(user)
                 
                 self._log_info("User validation passed", email=dto.email)
                 
@@ -101,6 +102,7 @@ class ListUsersUseCase(BaseUseCase):
 
 
 class UpdateUserUseCase(BaseUseCase):
+    # CORRIGIDO: Adicionado domain_service_factory como parâmetro
     def __init__(self, uow: UnitOfWork, logger: Logger, domain_service_factory: DomainServiceFactory):
         super().__init__(uow, logger)
         self._domain_service_factory = domain_service_factory
@@ -215,7 +217,6 @@ class DeleteUserUseCase(BaseUseCase):
             except Exception as e:
                 self._log_error("Error deleting user", user_id=user_id, error=str(e))
                 raise RuntimeError(f"Failed to delete user: {str(e)}")
-
 
 # Factory para criar use cases com dependências configuradas
 class UseCaseFactory:

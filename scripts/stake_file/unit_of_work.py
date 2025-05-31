@@ -14,10 +14,19 @@ class SQLUnitOfWork(AbstractUnitOfWork):
         self.users = SQLUserRepository(self._session)
         return self
     
+    # async def __aexit__(self, exc_type, exc_val, exc_tb):
+    #     if self._session:
+    #         if exc_type is not None:
+    #             await self._session.rollback()
+    #         await self._session.close()
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self._session:
-            if exc_type is not None:
-                await self._session.rollback()
+        try:
+            if exc_type is None:
+                await self.commit()
+            else:
+                await self.rollback()
+        finally:
             await self._session.close()
     
     async def commit(self):

@@ -380,3 +380,40 @@ class DomainServiceFactory:
     def create_analytics_service(user_repository) -> UserAnalyticsService:
         """Create a UserAnalyticsService."""
         return UserAnalyticsService(user_repository)
+    
+class DomainServiceFactory:
+    """Factory for creating domain services with common configurations."""
+    
+    def __init__(self):
+        pass  # Permite instanciação
+    
+    def create_user_domain_service(
+        self, 
+        user_repository, 
+        enable_profanity_filter: bool = False,
+        allowed_domains: List[str] = None,
+        business_hours_only: bool = False
+    ) -> UserDomainService:
+        """Create a UserDomainService with common rule configurations."""
+        
+        rules = [
+            EmailFormatAdvancedValidationRule(),
+            NameContentValidationRule(),
+        ]
+        
+        if enable_profanity_filter:
+            # Add common profanity words - in production, load from config/database
+            forbidden_words = ["badword1", "badword2"]  # Replace with actual list
+            rules.append(NameProfanityValidationRule(forbidden_words))
+        
+        if allowed_domains:
+            rules.append(EmailDomainValidationRule(allowed_domains))
+        
+        if business_hours_only:
+            rules.append(BusinessHoursValidationRule(business_hours_only))
+        
+        return UserDomainService(user_repository, rules)
+    
+    def create_analytics_service(self, user_repository) -> UserAnalyticsService:
+        """Create a UserAnalyticsService."""
+        return UserAnalyticsService(user_repository)

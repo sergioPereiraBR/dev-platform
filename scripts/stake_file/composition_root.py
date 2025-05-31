@@ -26,6 +26,7 @@ class CompositionRoot:
         self._config = config or {}
         self._logger = StructuredLogger()
         self._uow = None
+        self._domain_service_factory = DomainServiceFactory()
 
     @property
     def uow(self) -> SQLUnitOfWork:
@@ -33,11 +34,16 @@ class CompositionRoot:
             self._uow = SQLUnitOfWork()
         return self._uow
     
-    # Use Cases
+    @property
+    def domain_service_factory(self) -> DomainServiceFactory:
+        return self._domain_service_factory
+    
+    # Use Cases - CORRIGIDO: Adicionando domain_service_factory onde necessário
     def create_user_use_case(self) -> CreateUserUseCase:
         return CreateUserUseCase(
             uow=self.uow,
-            logger=self._logger
+            logger=self._logger,
+            domain_service_factory=self.domain_service_factory  # ADICIONADO
         )
     
     def list_users_use_case(self) -> ListUsersUseCase:
@@ -49,7 +55,8 @@ class CompositionRoot:
     def update_user_use_case(self) -> UpdateUserUseCase:
         return UpdateUserUseCase(
             uow=self.uow,
-            logger=self._logger
+            logger=self._logger,
+            domain_service_factory=self.domain_service_factory  # ADICIONADO
         )
     
     def get_user_use_case(self) -> GetUserUseCase:
@@ -72,7 +79,7 @@ class CompositionRoot:
         # Get configuration for validation rules
         validation_config = self._config.get('validation', {})
         
-        return DomainServiceFactory.create_user_domain_service(
+        return self.domain_service_factory.create_user_domain_service(
             user_repository=user_repository,
             enable_profanity_filter=validation_config.get('enable_profanity_filter', False),
             allowed_domains=validation_config.get('allowed_domains'),
@@ -81,11 +88,16 @@ class CompositionRoot:
     
     def user_analytics_service(self, user_repository) -> UserAnalyticsService:
         """Create UserAnalyticsService."""
-        return DomainServiceFactory.create_analytics_service(user_repository)
+        return self.domain_service_factory.create_analytics_service(user_repository)
     
     # Utility methods for specific configurations
     def create_enterprise_user_domain_service(self, user_repository) -> UserDomainService:
         """
         Create UserDomainService with enterprise-level validation rules.
         """
-        ...
+        return self.domain_service_factory.create_user_domain_service(
+            user_repository=user_repository,
+            enable_profanity_filter=True,
+            allowed_domains=['empresa.com', 'company.com'],
+            business_hours_only=True
+        )
