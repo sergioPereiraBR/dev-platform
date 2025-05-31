@@ -186,7 +186,6 @@ class BusinessHoursValidationRule(ValidationRule):
     def rule_name(self) -> str:
         return "business_hours_validation"
 
-# ==========================================================================================================================================
 class UserDomainService:
     """Service for complex user domain validations and business rules."""
     

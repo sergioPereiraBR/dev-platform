@@ -29,9 +29,11 @@ class BaseUseCase:
 
 
 class CreateUserUseCase(BaseUseCase):
-    def __init__(self, uow: UnitOfWork, logger: Logger, domain_service_factory: DomainServiceFactory):
+    def __init__(self, uow: UnitOfWork, logger: Logger):
         super().__init__(uow, logger)
-        self._domain_service_factory = domain_service_factory
+    # def __init__(self, uow: UnitOfWork, logger: Logger, domain_service_factory: DomainServiceFactory):
+    #     super().__init__(uow, logger)
+    #     self._domain_service_factory = domain_service_factory
     
     async def execute(self, dto: UserCreateDTO) -> User:
         async with self._uow:
