@@ -1,46 +1,67 @@
 # src/dev_platform/infrastructure/logging/structured_logger.py
-import logging
-import json
+
+from typing import Dict, Any, Optional
 import os
-import sys
-from datetime import datetime
+from uuid import uuid4
+from loguru import logger
+from infrastructure.config import CONFIG
 from application.user.ports import Logger as LoggerPort
 
 class StructuredLogger(LoggerPort):
-    def __init__(self, name: str = "DEV Platform", level=logging.INFO):
-        self.logger = logging.getLogger(name)
-        self.logger.setLevel(level)
-        
-        if not self.logger.handlers:
-            # Console handler
-            console_handler = logging.StreamHandler(sys.stdout)
-            console_handler.setFormatter(
-                logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            )
-            self.logger.addHandler(console_handler)
-            
-            # File handler for errors
-            if not os.path.exists('logs'):
-                os.makedirs('logs')
-            file_handler = logging.FileHandler(f"logs/{datetime.now().strftime('%Y-%m-%d')}.log")
-            file_handler.setLevel(logging.ERROR)
-            file_handler.setFormatter(
-                logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            )
-            self.logger.addHandler(file_handler)
+    """Logger estruturado usando Loguru com suporte a níveis dinâmicos e correlação de logs."""
     
+    def __init__(self, name: str = "DEV Platform"):
+        self._name = name
+        self._configure_logger()
+
+    def _configure_logger(self):
+        """Configura o logger com base no ambiente e adiciona handlers."""
+        # Remover handlers padrão do Loguru
+        logger.remove()
+
+        # Obter nível de log com base no ambiente
+        environment = CONFIG.get("environment", "production")
+        log_level = CONFIG.get("logging.level", "INFO").upper()
+        log_levels = {
+            "development": "DEBUG",
+            "test": "DEBUG",
+            "production": "INFO"
+        }
+        default_level = log_levels.get(environment, "INFO")
+        final_level = log_level if log_level in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] else default_level
+
+        # Configurar handler para console (JSON, todos os níveis)
+        logger.add(
+            sink="sys.stdout",
+            level=final_level,
+            format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level} | {message} | {extra}",
+            serialize=True  # Formato JSON
+        )
+
+        # Configurar handler para arquivo (apenas ERROR, com rotação)
+        if not os.path.exists("logs"):
+            os.makedirs("logs")
+        logger.add(
+            sink=f"logs/{self._name}_{{time:YYYY-MM-DD}}.log",
+            level="ERROR",
+            rotation="10 MB",
+            retention="5 days",
+            compression="zip",
+            enqueue=True  # Assíncrono
+        )
+
+    def set_correlation_id(self, correlation_id: Optional[str] = None):
+        """Define um ID de correlação para rastreamento."""
+        logger.contextualize(correlation_id=correlation_id or str(uuid4()))
+
     def info(self, message: str, **kwargs):
-        self._log(logging.INFO, message, **kwargs)
-    
+        """Registra uma mensagem de nível INFO."""
+        logger.bind(**kwargs).info(message)
+
     def error(self, message: str, **kwargs):
-        self._log(logging.ERROR, message, **kwargs)
-    
+        """Registra uma mensagem de nível ERROR."""
+        logger.bind(**kwargs).error(message)
+
     def warning(self, message: str, **kwargs):
-        self._log(logging.WARNING, message, **kwargs)
-    
-    def _log(self, level: int, message: str, **kwargs):
-        if kwargs:
-            log_data = {"message": message, **kwargs}
-            self.logger.log(level, json.dumps(log_data))
-        else:
-            self.logger.log(level, message)
+        """Registra uma mensagem de nível WARNING."""
+        logger.bind(**kwargs).warning(message)
