@@ -6,7 +6,8 @@ from infrastructure.composition_root import CompositionRoot
 from infrastructure.config import CONFIG
 
 class UserCommands:
-    def __init__(self):
+    def __init__(self, config: dict = None):
+        
         # CORRIGIDO: Passar configuração para o CompositionRoot
         self._composition_root = CompositionRoot(config=CONFIG.get_config())
     

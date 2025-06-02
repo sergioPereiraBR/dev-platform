@@ -26,7 +26,8 @@ class DatabaseSessionManager:
         }
         
         # Engine assíncrono
-        async_url = CONFIG.get_database_url()
+        async_url = CONFIG.get("DATABASE_URL")
+        print(async_url)
         self._async_engine = create_async_engine(
             async_url,
             echo=CONFIG.get("database.echo", False),
@@ -42,7 +43,7 @@ class DatabaseSessionManager:
         
         # Engine síncrono (se necessário para migrações ou outras operações)
         if not async_url.startswith("sqlite+aiosqlite"):  # SQLite não precisa de engine síncrono separado
-            sync_url = CONFIG.get_sync_database_url()
+            sync_url = CONFIG.get("DATABASE_URL")
             self._sync_engine = create_engine(
                 sync_url,
                 echo=CONFIG.get("database.echo", False),
