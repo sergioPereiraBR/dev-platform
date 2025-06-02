@@ -185,6 +185,12 @@ class SQLUserRepository(UserRepository):
                 error=e,
                 user_id=user_id
             )
+
+    async def find_by_ids(self, user_ids: List[int]) -> List[User]:
+        result = await self._session.execute(
+            select(UserModel).where(UserModel.id.in_(user_ids))
+        )
+        return [self._convert_to_domain_user(u) for u in result.scalars().all()]
     
     async def delete(self, user_id: int) -> bool:
         """Delete a user by ID."""
