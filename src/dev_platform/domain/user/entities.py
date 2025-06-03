@@ -1,7 +1,8 @@
-#   src/dev_platform/domain/user/entities.py
+# src/dev_platform/domain/user/entities.py
 from dataclasses import dataclass
 from typing import Optional
 from domain.user.value_objects import Email, UserName
+
 
 @dataclass(frozen=True)
 class User:

@@ -1,5 +1,6 @@
 # src/dev_platform/infrastructure/composition_root.py
 from typing import List, Optional
+
 from application.user.use_cases import (
     CreateUserUseCase, 
     ListUsersUseCase, 
@@ -14,6 +15,7 @@ from domain.user.services import (
     UserAnalyticsService,
     DomainServiceFactory
 )
+from infrastructure.config import CONFIG
 
 
 class CompositionRoot:
@@ -22,8 +24,8 @@ class CompositionRoot:
     Centralizes the creation and configuration of all application dependencies.
     """
     
-    def __init__(self, config: dict = None):
-        self._config = config or {}
+    def __init__(self):
+        # self._config = config or {}
         self._logger = StructuredLogger()
         self._uow = None
         self._domain_service_factory = DomainServiceFactory()
@@ -36,35 +38,41 @@ class CompositionRoot:
     
     @property
     def domain_service_factory(self) -> DomainServiceFactory:
+        if self._domain_service_factory is None:
+            self._domain_service_factory = DomainServiceFactory()
         return self._domain_service_factory
-    
-    # Use Cases - CORRIGIDO: Adicionando domain_service_factory onde necessário
+
+    @property
     def create_user_use_case(self) -> CreateUserUseCase:
         return CreateUserUseCase(
             uow=self.uow,
-            logger=self._logger,
-            domain_service_factory=self.domain_service_factory  # ADICIONADO
+            user_domain_service=self.domain_service_factory.user_domain_service,
+            logger=self._logger
         )
-    
+
+    @property
     def list_users_use_case(self) -> ListUsersUseCase:
         return ListUsersUseCase(
             uow=self.uow,
             logger=self._logger
         )
     
+    @property
     def update_user_use_case(self) -> UpdateUserUseCase:
         return UpdateUserUseCase(
             uow=self.uow,
-            logger=self._logger,
-            domain_service_factory=self.domain_service_factory  # ADICIONADO
+            user_domain_service=self.domain_service_factory.user_domain_service,
+            logger=self._logger
         )
-    
+
+    @property
     def get_user_use_case(self) -> GetUserUseCase:
         return GetUserUseCase(
             uow=self.uow,
             logger=self._logger
         )
-    
+
+    @property
     def delete_user_use_case(self) -> DeleteUserUseCase:
         return DeleteUserUseCase(
             uow=self.uow,

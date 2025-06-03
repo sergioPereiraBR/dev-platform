@@ -7,6 +7,7 @@ from loguru import logger
 from infrastructure.config import CONFIG
 from application.user.ports import Logger as LoggerPort
 
+
 class StructuredLogger(LoggerPort):
     """Logger estruturado usando Loguru com suporte a níveis dinâmicos e correlação de logs."""
     
@@ -65,3 +66,22 @@ class StructuredLogger(LoggerPort):
     def warning(self, message: str, **kwargs):
         """Registra uma mensagem de nível WARNING."""
         logger.bind(**kwargs).warning(message)
+
+    def debug(self, message: str, **kwargs):
+        """Registra uma mensagem de nível DEBUG."""
+        logger.bind(**kwargs).debug(message)
+    
+    def critical(self, message: str, **kwargs):
+        """Registra uma mensagem de nível CRITICAL."""
+        logger.bind(**kwargs).critical(message)
+
+    # NOVO MÉTODO PARA SHUTDOWN GRACIOSO DO LOGGER
+    @staticmethod
+    def shutdown():
+        """
+        Garante que todas as mensagens enfileiradas pelo Loguru sejam processadas
+        e que os handlers sejam removidos. Isso é crucial para limpar recursos
+        assíncronos do logger antes que o loop de eventos feche.
+        """
+        logger.complete() # Processa todas as mensagens enfileiradas
+        logger.remove()  # Remove todos os handlers para evitar vazamentos de recursos

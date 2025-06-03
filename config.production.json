@@ -1,0 +1,20 @@
+[
+    {
+        "name": "dev_platform",
+        "version": "1.0.0",
+        "description": "Production configuration for the development platform",
+        "environment": "production",
+        "apiBaseUrl": "https://api.devplatform.com",
+        "loggingLevel": "error",
+        "features": {
+        "enableFeatureX": false,
+        "enableFeatureY": true
+        },
+        "database": {
+        "host": "prod-db.devplatform.com",
+        "port": 5432,
+        "username": "prod_user",
+        "password": "secure_password"
+        }
+    }
+]

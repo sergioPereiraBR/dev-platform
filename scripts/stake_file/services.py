@@ -12,6 +12,7 @@ from domain.user.exceptions import (
     InvalidUserDataException
 )
 
+
 class UserUniquenessService:
     """Service focused on uniqueness validation."""
     
@@ -40,7 +41,6 @@ class ValidationRule(ABC):
     def rule_name(self) -> str:
         pass
 
-
 class EmailDomainValidationRule(ValidationRule):
     """Validates that email domain is in allowed list."""
     
@@ -56,7 +56,6 @@ class EmailDomainValidationRule(ValidationRule):
     @property
     def rule_name(self) -> str:
         return "email_domain_validation"
-
 
 class NameProfanityValidationRule(ValidationRule):
     """Validates that name doesn't contain profanity."""
@@ -74,7 +73,6 @@ class NameProfanityValidationRule(ValidationRule):
     @property
     def rule_name(self) -> str:
         return "name_profanity_validation"
-
 
 class EmailFormatAdvancedValidationRule(ValidationRule):
     """Advanced email format validation beyond basic regex."""
@@ -115,7 +113,6 @@ class EmailFormatAdvancedValidationRule(ValidationRule):
     @property
     def rule_name(self) -> str:
         return "email_format_advanced_validation"
-
 
 class NameContentValidationRule(ValidationRule):
     """Validates name content and format."""
@@ -160,7 +157,6 @@ class NameContentValidationRule(ValidationRule):
     @property
     def rule_name(self) -> str:
         return "name_content_validation"
-
 
 class BusinessHoursValidationRule(ValidationRule):
     """Example rule that validates based on business hours."""
@@ -315,7 +311,6 @@ class UserDomainService:
                     domain_whitelist
                 )
 
-
 class UserAnalyticsService:
     """Service for user analytics and reporting."""
     
@@ -345,7 +340,6 @@ class UserAnalyticsService:
             ]
         except Exception as e:
             raise RuntimeError(f"Failed to find users by domain: {str(e)}")
-
 
 # Factory for creating domain services with common configurations    
 class DomainServiceFactory:

@@ -1,4 +1,4 @@
-#   src/dev_platform/domain/user/exceptions.py
+# src/dev_platform/domain/user/exceptions.py
 from datetime import datetime
 from typing import Optional, Dict, Any
 
@@ -12,7 +12,6 @@ class ApplicationException(Exception):
         self.original_exception = original_exception
         self.timestamp = datetime.now()
         super().__init__(self.message)
-
 
 class UseCaseException(ApplicationException):
     """Raised when a use case execution fails."""
@@ -45,7 +44,6 @@ class InfrastructureException(Exception):
             "original_error": str(self.original_exception) if self.original_exception else None
         }
 
-
 class DatabaseException(InfrastructureException):
     """Raised when database operations fail."""
     
@@ -67,7 +65,6 @@ class DatabaseException(InfrastructureException):
         })
         return base_dict
 
-
 class ConfigurationException(InfrastructureException):
     """Raised when configuration is invalid or missing."""
     
@@ -78,7 +75,6 @@ class ConfigurationException(InfrastructureException):
             message=f"Configuration error for '{config_key}': {reason}",
             component="configuration"
         )
-
 
 class CacheException(InfrastructureException):
     """Raised when cache operations fail."""
@@ -92,7 +88,6 @@ class CacheException(InfrastructureException):
             component="cache",
             original_exception=original_exception
         )
-
 
 # Repository-specific exceptions
 class RepositoryException(InfrastructureException):
@@ -108,7 +103,6 @@ class RepositoryException(InfrastructureException):
             original_exception=original_exception
         )
 
-
 class DataIntegrityException(RepositoryException):
     """Raised when data integrity constraints are violated."""
     
@@ -122,7 +116,6 @@ class DataIntegrityException(RepositoryException):
             original_exception=original_exception
         )
 
-
 class DataCorruptionException(RepositoryException):
     """Raised when data corruption is detected."""
     
@@ -135,7 +128,6 @@ class DataCorruptionException(RepositoryException):
             operation="data_validation",
             reason=f"{entity_type} {entity_id} has corrupted data: {corruption_details}"
         )
-
 
 # Exceções Específicas do Domínio
 class DomainException(Exception):
@@ -156,7 +148,6 @@ class DomainException(Exception):
             "timestamp": self.timestamp.isoformat()
         }
 
-
 class UserAlreadyExistsException(DomainException):
     """Raised when trying to create a user with an email that already exists."""
     
@@ -167,7 +158,6 @@ class UserAlreadyExistsException(DomainException):
             error_code="USER_ALREADY_EXISTS",
             details={"email": email}
         )
-
 
 class UserNotFoundException(DomainException):
     """Raised when a user cannot be found."""
@@ -180,7 +170,6 @@ class UserNotFoundException(DomainException):
             error_code="USER_NOT_FOUND",
             details={"identifier": identifier, "identifier_type": identifier_type}
         )
-
 
 class InvalidUserDataException(DomainException):
     """Raised when user data fails validation."""
@@ -195,7 +184,6 @@ class InvalidUserDataException(DomainException):
             details={"field": field, "value": str(value), "reason": reason}
         )
 
-
 class UserValidationException(DomainException):
     """Raised when user business rules validation fails."""
     
@@ -207,7 +195,6 @@ class UserValidationException(DomainException):
             error_code="USER_VALIDATION_FAILED",
             details={"validation_errors": validation_errors}
         )
-
 
 class EmailDomainNotAllowedException(DomainException):
     """Raised when email domain is not in allowed list."""
@@ -226,7 +213,6 @@ class EmailDomainNotAllowedException(DomainException):
             }
         )
 
-
 class UserOperationException(DomainException):
     """Raised when a user operation fails."""
     
@@ -240,7 +226,6 @@ class UserOperationException(DomainException):
             details={"operation": operation, "user_id": user_id, "reason": reason}
         )
 
-
 # Compatibility aliases (deprecated, use specific exceptions above)
 class DomainError(DomainException):
     """Exception for domain-related errors. DEPRECATED: Use DomainException instead."""
@@ -253,7 +238,6 @@ class DomainError(DomainException):
             stacklevel=2
         )
         super().__init__(message)
-
 
 class ValidationException(DomainException):
     """Exception for validation-related errors. DEPRECATED: Use UserValidationException instead."""

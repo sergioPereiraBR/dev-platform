@@ -6,9 +6,12 @@ from typing import Dict, Any, Optional
 import warnings
 from domain.user.exceptions import ConfigurationException
 
-    
-class Configuration():
-    """Classe avançada para gerenciar configurações da aplicação."""
+
+# Definição de exceções para configuração
+class ConfigurationException(Exception):
+    pass
+
+class Configuration:
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -18,10 +21,8 @@ class Configuration():
 
     def __init__(self):
         # A flag para garantir que a inicialização ocorra apenas uma vez por instância singleton
-        if not hasattr(self, '_initialized'):
-            self._initialized = False
-        
-        if not self._initialized:
+        if not hasattr(self, '_initialized') or not self._initialized:
+            self._initialized = False # Garante que a flag seja redefinida se a instância já existia, mas não inicializada
             self._environment = os.getenv("ENVIRONMENT", "production") # Garante que ENVIRONMENT seja lido primeiro
             self._config = {}
             self._load_environment_variables()
@@ -30,58 +31,81 @@ class Configuration():
             self._initialized = True # Marca como inicializado
 
     def _load_environment_variables(self):
-        """Carrega variáveis de ambiente de um arquivo .env específico do ambiente."""
-        # Determina o nome do arquivo .env com base no ambiente
+        """
+        Carrega variáveis de ambiente de um arquivo .env específico do ambiente.
+        Por exemplo, se ENVIRONMENT=development, ele tentará carregar .env.development.
+        """
         dotenv_path = f".env.{self._environment}"
         
-        # Carrega as variáveis do arquivo .env específico do ambiente
-        # override=True garante que variáveis do .env sobrescrevam variáveis de ambiente existentes
-        load_dotenv(dotenv_path=dotenv_path, override=True)
-        
-        # Se for produção e o arquivo .env.production não for usado,
-        # ou se variáveis de ambiente já são definidas externamente,
-        # load_dotenv() sem path carrega do .env padrão se existir, ou do ambiente
-        # Isso é mais uma garantia, mas o principal é o dotenv_path
-        if self._environment == "production" and not os.path.exists(dotenv_path):
-             print(f"Aviso: .env.{self._environment} não encontrado. Assumindo variáveis de ambiente serão configuradas externamente para produção.")
+        # O base_dir é importante se o script não for executado da raiz do projeto.
+        # Assumindo que os arquivos .env estão na raiz do projeto.
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        full_dotenv_path = os.path.join(base_dir, dotenv_path)
 
+        if os.path.exists(full_dotenv_path):
+            load_dotenv(dotenv_path=full_dotenv_path, override=True)
+            # print(f"INFO: Carregado .env de {full_dotenv_path}")
+        else:
+            # Para produção, pode ser normal que as variáveis de ambiente venham do deploy.
+            # Para outros ambientes, avise se o arquivo não for encontrado.
+            if self._environment == "production":
+                print(f"AVISO: Arquivo .env.{self._environment} não encontrado em {full_dotenv_path}. Assumindo que as variáveis de ambiente são configuradas externamente para produção.")
+            else:
+                warnings.warn(f"AVISO: Arquivo .env.{self._environment} não encontrado em {full_dotenv_path}. Algumas variáveis de ambiente podem não estar definidas.")
 
     def _load_config_file(self):
-        """Carrega e mescla configurações de arquivos JSON específicos do ambiente."""
+        """
+        Carrega e mescla configurações de arquivos JSON específicos do ambiente.
+        Ex: config.development.json, config.test.json.
+        """
         config_file_path = f"config.{self._environment}.json"
-        if os.path.exists(config_file_path):
+        
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        full_config_file_path = os.path.join(base_dir, config_file_path)
+
+        if os.path.exists(full_config_file_path):
             try:
-                with open(config_file_path, 'r') as f:
+                with open(full_config_file_path, 'r') as f:
                     environment_config = json.load(f)
                     self._config.update(environment_config)
+                    # print(f"INFO: Carregado arquivo de configuração {full_config_file_path}")
             except Exception as e:
-                warnings.warn(f"Erro ao carregar o arquivo de configuração {config_file_path}: {e}")
-        
-        # Carrega configs padrão se não houver configs específicas do ambiente já carregadas
-        # ou se você tiver um arquivo de config padrão.
-        # Por simplicidade, assumimos que as configurações são principalmente via .env agora.
-        # Se você tiver um config.json padrão, você carregaria ele primeiro e depois faria o update com o específico.
+                warnings.warn(f"Erro ao carregar o arquivo de configuração {full_config_file_path}: {e}")
+        else:
+            print(f"INFO: Arquivo de configuração {full_config_file_path} não encontrado. Usando apenas variáveis de ambiente e padrões.")
 
     def _validate_production_config(self):
         """Valida que a DATABASE_URL esteja presente em ambiente de produção."""
         if self._environment == "production":
-            if not os.getenv("DATABASE_URL"): # Agora verifica diretamente de os.getenv
+            # Agora verifica diretamente de os.getenv, que já foi populado pelo load_dotenv
+            if not os.getenv("DATABASE_URL"):
                 raise ConfigurationException("DATABASE_URL must be set in production environment.")
 
     def get(self, key: str, default: Any = None) -> Any:
-        """Obtém um valor de configuração, preferindo variáveis de ambiente."""
-        env_value = os.getenv(key.upper().replace('.', '_')) # Converte key para formato de var de ambiente (ex: logging.level -> LOGGING_LEVEL)
+        """
+        Obtém um valor de configuração, preferindo variáveis de ambiente.
+        Converte a chave de ponto (ex: 'logging.level') para underscore maiúsculo (ex: 'LOGGING_LEVEL').
+        """
+        env_key = key.upper().replace('.', '_')
+        env_value = os.getenv(env_key) 
         if env_value is not None:
             return env_value
+        # Se não estiver nas variáveis de ambiente, tenta pegar do arquivo JSON (se carregado)
         return self._config.get(key, default)
 
-    # Remova os métodos get_database_url, get_sync_database_url e get_async_database_url
-    # e acesse DATABASE_URL diretamente via get() ou os.getenv()
-    # Exemplo: CONFIG.get("DATABASE_URL") ou os.getenv("DATABASE_URL")
+    def get_all_config(self) -> Dict[str, Any]:
+        """Retorna todas as configurações carregadas (mescladas de arquivos e ambiente)."""
+        # Itera sobre os atributos que se parecem com chaves de configuração e os combina com _config
+        # ou, mais simples, crie um dicionário combinando as variáveis de ambiente com as configs de arquivo
+        all_configs = self._config.copy()
+        # Adiciona variáveis de ambiente que podem não estar no _config
+        for env_key, env_value in os.environ.items():
+            # Pode-se adicionar uma lógica para filtrar apenas variáveis relevantes se necessário
+            all_configs[env_key.lower().replace('_', '.')] = env_value
+        return all_configs
 
-    # Mantenha _ensure_async_driver se ainda precisar dele para transformar URLs
     def _ensure_async_driver(self, url: str) -> str:
-        # Sua implementação existente de _ensure_async_driver
+        """Garante que a URL do banco de dados use um driver assíncrono."""
         if url.startswith("mysql://"):
             return url.replace("mysql://", "mysql+aiomysql://")
         elif url.startswith("postgresql://"):
@@ -92,50 +116,19 @@ class Configuration():
 
     @property
     def database_url(self) -> str:
-        """Retorna a URL do banco de dados, garantindo driver assíncrono."""
-        url = self.get("DATABASE_URL") # Obtém do .env ou ambiente
+        """Retorna a URL do banco de dados com driver assíncrono garantido."""
+        url = self.get("DATABASE_URL")
         if not url:
-            raise ConfigurationException("DATABASE_URL is not configured.")
+            raise ConfigurationException("DATABASE_URL is not configured for the current environment.")
         return self._ensure_async_driver(url)
     
     @property
     def sync_database_url(self) -> str:
-        """Retorna a URL do banco de dados, sem garantir driver assíncrono."""
-        url = self.get("DATABASE_URL") # Obtém do .env ou ambiente
+        """Retorna a URL do banco de dados sem garantir driver assíncrono (para ferramentas síncronas)."""
+        url = self.get("DATABASE_URL")
         if not url:
-            raise ConfigurationException("DATABASE_URL is not configured.")
+            raise ConfigurationException("DATABASE_URL is not configured for the current environment.")
         return url
 
-    def get_config(self) -> Dict[str, Any]:
-        """Retorna todas as configurações como um dicionário."""
-        return self.config
-
-    # def get(self, path: str, default: Any = None) -> Any:
-    #     """Obtém um valor de configuração por caminho pontilhado, ex: 'database.url'"""
-    #     keys = path.split(".")
-    #     value = self.config
-        
-    #     for key in keys:
-    #         if isinstance(value, dict) and key in value:
-    #             value = value[key]
-    #         else:
-    #             return default
-        
-    #     return value
-
-    def is_development(self) -> bool:
-        """Verifica se está em ambiente de desenvolvimento."""
-        return self.environment == "development"
-
-    def is_production(self) -> bool:
-        """Verifica se está em ambiente de produção."""
-        return self.environment == "production"
-
-    def is_test(self) -> bool:
-        """Verifica se está em ambiente de teste."""
-        return self.environment == "test"
-
-
-# Instância Singleton para uso fácil em outros módulos
+# Instância singleton da configuração
 CONFIG = Configuration()
-DATABASE_URL = CONFIG.get("DATABASE_URL") # CONFIG.database_url()

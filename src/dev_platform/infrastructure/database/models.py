@@ -1,4 +1,4 @@
-#   src/dev_platform/infrastructure/database/models.py
+# src/dev_platform/infrastructure/database/models.py
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import declarative_base
 

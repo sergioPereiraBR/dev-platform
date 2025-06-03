@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from infrastructure.config import CONFIG
 
+
 class DatabaseSessionManager:
     """Gerenciador centralizado de sessões de banco de dados."""
     
@@ -27,7 +28,6 @@ class DatabaseSessionManager:
         
         # Engine assíncrono
         async_url = CONFIG.get("DATABASE_URL")
-        print(async_url)
         self._async_engine = create_async_engine(
             async_url,
             echo=CONFIG.get("database.echo", False),

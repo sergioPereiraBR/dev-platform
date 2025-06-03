@@ -1,335 +1,367 @@
 #!/usr/bin/env python3
 """
-PDF Generator CLI - Cria PDF com conteúdo de arquivos de texto de uma pasta
+PDF Generator CLI - Converte arquivos de uma pasta em um PDF estruturado
+Autor: Script gerado para converter arquivos em PDF com índice e formatação
 """
 
+import argparse
 import os
 import sys
-import argparse
-import chardet
-import re
 from pathlib import Path
-from typing import List, Tuple, Optional
-from reportlab.pdfgen import canvas
+from typing import List, Optional, Set
+import logging
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
+from reportlab.pdfgen import canvas
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus.tableofcontents import TableOfContents
+
+# Configuração de logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 class PDFGenerator:
-    def __init__(self, output_path: str = "arquivos_compilados.pdf"):
-        self.output_path = output_path
-        self.story = []
-        self.toc_entries = []
-        
-        # Configurar estilos
-        self.styles = getSampleStyleSheet()
-        self.setup_styles()
+    """Classe principal para geração de PDF a partir de arquivos"""
     
-    def setup_styles(self):
-        """Configura estilos personalizados para o PDF"""
-        # Estilo para título principal
-        self.styles.add(ParagraphStyle(
-            name='CustomTitle',
-            parent=self.styles['Heading1'],
-            fontSize=16,
-            spaceAfter=30,
-            alignment=1,  # Centralizado
-            textColor=colors.darkblue
-        ))
-        
-        # Estilo para títulos de seção
-        self.styles.add(ParagraphStyle(
-            name='SectionTitle',
-            parent=self.styles['Heading2'],
-            fontSize=14,
-            spaceBefore=20,
-            spaceAfter=15,
-            textColor=colors.darkgreen
-        ))
-        
-        # Estilo para conteúdo de código com fonte monoespaçada
-        self.styles.add(ParagraphStyle(
-            name='CodeContent',
-            fontName='Courier',
-            fontSize=9,
-            leftIndent=20,
-            spaceBefore=10,
-            spaceAfter=10,
-            preserveLeadingSpaces=True,
-            allowWidows=0,
-            allowOrphans=0
-        ))
-        
-        # Estilo para índice
-        self.styles.add(ParagraphStyle(
-            name='TOCEntry',
-            fontName='Helvetica',
-            fontSize=12,
-            leftIndent=20,
-            spaceBefore=5
-        ))
-
-    def detect_encoding(self, file_path: str) -> str:
-        """Detecta a codificação do arquivo"""
-        try:
-            with open(file_path, 'rb') as f:
-                raw_data = f.read()
-                result = chardet.detect(raw_data)
-                return result['encoding'] or 'utf-8'
-        except Exception:
-            return 'utf-8'
-
-    def read_file_content(self, file_path: str, encodings: List[str] = None) -> Tuple[str, str]:
-        """Lê o conteúdo do arquivo tentando diferentes codificações"""
-        if encodings is None:
-            encodings = ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']
-        
-        # Primeiro tenta detectar automaticamente
-        detected_encoding = self.detect_encoding(file_path)
-        if detected_encoding and detected_encoding not in encodings:
-            encodings.insert(0, detected_encoding)
-        
-        for encoding in encodings:
-            try:
-                with open(file_path, 'r', encoding=encoding) as f:
-                    content = f.read()
-                    return content, encoding
-            except UnicodeDecodeError:
-                continue
-            except Exception as e:
-                print(f"Erro ao ler arquivo {file_path}: {e}")
-                continue
-        
-        # Se não conseguir ler, retorna erro
-        return f"[ERRO: Não foi possível decodificar o arquivo {file_path}]", "error"
-
-    def is_text_file(self, file_path: str) -> bool:
-        """Verifica se o arquivo é um arquivo de texto"""
-        text_extensions = {
-            '.txt', '.py', '.js', '.html', '.css', '.json', '.xml', '.yaml', '.yml',
-            '.md', '.rst', '.cfg', '.ini', '.conf', '.log', '.sql', '.sh', '.bat',
-            '.c', '.cpp', '.h', '.hpp', '.java', '.php', '.rb', '.go', '.rs',
-            '.ts', '.jsx', '.tsx', '.vue', '.svelte', '.scss', '.sass', '.less',
-            '.dockerfile', '.gitignore', '.env', '.properties', '.toml'
-        }
-        
-        ext = Path(file_path).suffix.lower()
-        if ext in text_extensions:
-            return True
-        
-        # Tenta detectar se é arquivo de texto analisando o conteúdo
-        try:
-            with open(file_path, 'rb') as f:
-                chunk = f.read(1024)
-                if b'\0' in chunk:  # Arquivo binário contém bytes nulos
-                    return False
-                
-                # Tenta decodificar como texto
-                try:
-                    chunk.decode('utf-8')
-                    return True
-                except UnicodeDecodeError:
-                    try:
-                        chunk.decode('latin-1')
-                        return True
-                    except UnicodeDecodeError:
-                        return False
-        except Exception:
-            return False
-
-    def filter_files(self, files: List[str], include_extensions: List[str] = None, 
-                    exclude_extensions: List[str] = None) -> List[str]:
-        """Filtra arquivos baseado nas extensões"""
-        filtered = []
-        
-        for file_path in files:
-            ext = Path(file_path).suffix.lower()
-            
-            # Aplicar filtro de exclusão
-            if exclude_extensions and ext in exclude_extensions:
-                continue
-            
-            # Aplicar filtro de inclusão
-            if include_extensions and ext not in include_extensions:
-                continue
-            
-            filtered.append(file_path)
-        
-        return filtered
-
-    def escape_xml_chars(self, text: str) -> str:
-        """Escapa caracteres especiais para XML/HTML preservando espaços"""
-        text = text.replace('&', '&amp;')
-        text = text.replace('<', '&lt;')
-        text = text.replace('>', '&gt;')
-        # Converter espaços múltiplos para espaços não-quebráveis para preservar indentação
-        lines = text.split('\n')
-        processed_lines = []
-        
-        for line in lines:
-            if line.strip():  # Se a linha não está vazia
-                # Contar espaços no início da linha
-                leading_spaces = len(line) - len(line.lstrip())
-                if leading_spaces > 0:
-                    # Substituir espaços iniciais por espaços não-quebráveis
-                    line = '&nbsp;' * leading_spaces + line.lstrip()
-                
-                # Substituir tabs por 4 espaços não-quebráveis
-                line = line.replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;')
-                
-                # Substituir múltiplos espaços internos por espaços não-quebráveis
-                import re
-                line = re.sub(r' {2,}', lambda m: '&nbsp;' * len(m.group()), line)
-            
-            processed_lines.append(line)
-        
-        return '\n'.join(processed_lines)
-
-    def format_content_for_pdf(self, content: str) -> str:
-        """Formata o conteúdo preservando espaçamento e quebras de linha exatamente como no original"""
-        # Não modificar o conteúdo, apenas garantir que espaços sejam preservados
-        return content
-
-    def add_table_of_contents(self):
-        """Adiciona índice ao PDF"""
-        self.story.append(Paragraph("Índice", self.styles['CustomTitle']))
-        self.story.append(Spacer(1, 20))
-        
-        for i, (title, page) in enumerate(self.toc_entries, 1):
-            entry_text = f"{i}. {title}"
-            self.story.append(Paragraph(entry_text, self.styles['TOCEntry']))
-        
-        self.story.append(PageBreak())
-
-    def generate_pdf(self, source_folder: str, include_extensions: List[str] = None,
-                    exclude_extensions: List[str] = None):
-        """Gera o PDF com o conteúdo dos arquivos"""
-        
-        if not os.path.exists(source_folder):
-            raise ValueError(f"Pasta não encontrada: {source_folder}")
-        
-        # Coletar todos os arquivos
-        all_files = []
-        for root, dirs, files in os.walk(source_folder):
-            for file in files:
-                file_path = os.path.join(root, file)
-                if self.is_text_file(file_path):
-                    all_files.append(file_path)
-        
-        # Aplicar filtros
-        filtered_files = self.filter_files(all_files, include_extensions, exclude_extensions)
-        filtered_files.sort()  # Ordenar alfabeticamente
-        
-        if not filtered_files:
-            raise ValueError("Nenhum arquivo de texto encontrado na pasta especificada")
-        
-        print(f"Processando {len(filtered_files)} arquivos...")
-        
-        # Título principal
-        title = f"Compilação de Arquivos - {os.path.basename(source_folder)}"
-        self.story.append(Paragraph(title, self.styles['CustomTitle']))
-        self.story.append(Spacer(1, 30))
-        
-        # Processar cada arquivo
-        for i, file_path in enumerate(filtered_files, 1):
-            relative_path = os.path.relpath(file_path, source_folder)
-            section_title = f"Arquivo: {relative_path}"
-            
-            print(f"Processando ({i}/{len(filtered_files)}): {relative_path}")
-            
-            # Adicionar entrada no índice
-            self.toc_entries.append((relative_path, len(self.story)))
-            
-            # Título da seção
-            self.story.append(Paragraph(section_title, self.styles['SectionTitle']))
-            self.story.append(Spacer(1, 10))
-            
-            # Ler conteúdo do arquivo
-            content, encoding = self.read_file_content(file_path)
-            
-            if encoding != "error":
-                # Informações do arquivo
-                file_size = os.path.getsize(file_path)
-                info_text = f"<b>Caminho:</b> {relative_path}<br/>"
-                info_text += f"<b>Tamanho:</b> {file_size} bytes<br/>"
-                info_text += f"<b>Codificação:</b> {encoding}<br/>"
-                
-                self.story.append(Paragraph(info_text, self.styles['Normal']))
-                self.story.append(Spacer(1, 10))
-                
-                # Conteúdo do arquivo
-                if content.strip():
-                    # Processar o conteúdo preservando formatação exata
-                    formatted_content = self.format_content_for_pdf(content)
-                    escaped_content = self.escape_xml_chars(formatted_content)
-                    
-                    # Dividir em chunks menores para evitar problemas com conteúdo muito longo
-                    lines = escaped_content.split('\n')
-                    chunk_size = 30  # Reduzido para melhor controle
-                    
-                    for i in range(0, len(lines), chunk_size):
-                        chunk_lines = lines[i:i + chunk_size]
-                        chunk_text = '<br/>'.join(chunk_lines)
-                        
-                        if chunk_text.strip() or any(line.strip() for line in chunk_lines):
-                            self.story.append(Paragraph(chunk_text, self.styles['CodeContent']))
-                else:
-                    self.story.append(Paragraph("[Arquivo vazio]", self.styles['CodeContent']))
-            else:
-                self.story.append(Paragraph(content, self.styles['Normal']))
-            
-            # Quebra de página entre arquivos (exceto o último)
-            if i < len(filtered_files):
-                self.story.append(PageBreak())
-        
-        # Adicionar índice no início
-        if self.toc_entries:
-            toc_story = []
-            toc_story.append(Paragraph("Índice", self.styles['CustomTitle']))
-            toc_story.append(Spacer(1, 20))
-            
-            for i, (title, page) in enumerate(self.toc_entries, 1):
-                entry_text = f"{i}. {title}"
-                toc_story.append(Paragraph(entry_text, self.styles['TOCEntry']))
-            
-            toc_story.append(PageBreak())
-            self.story = toc_story + self.story
-        
-        # Gerar PDF
-        doc = SimpleDocTemplate(
-            self.output_path,
+    def __init__(self, output_file: str):
+        self.output_file = output_file
+        self.doc = SimpleDocTemplate(
+            output_file,
             pagesize=A4,
             rightMargin=72,
             leftMargin=72,
             topMargin=72,
             bottomMargin=18
         )
+        self.story = []
+        self.styles = getSampleStyleSheet()
+        self._setup_styles()
         
-        doc.build(self.story)
-        print(f"\nPDF gerado com sucesso: {self.output_path}")
+    def _setup_styles(self):
+        """Configura os estilos personalizados para o documento"""
+        # Estilo para títulos de seção
+        self.styles.add(ParagraphStyle(
+            name='SectionTitle',
+            parent=self.styles['Heading1'],
+            fontSize=14,
+            spaceAfter=12,
+            textColor=colors.darkblue,
+            alignment=TA_LEFT
+        ))
+        
+        # Estilo para o índice
+        self.styles.add(ParagraphStyle(
+            name='TOCTitle',
+            parent=self.styles['Heading1'],
+            fontSize=16,
+            spaceAfter=18,
+            alignment=TA_CENTER,
+            textColor=colors.black
+        ))
+        
+        # Estilo para itens do índice
+        self.styles.add(ParagraphStyle(
+            name='TOCItem',
+            parent=self.styles['Normal'],
+            fontSize=11,
+            leftIndent=20,
+            spaceAfter=6
+        ))
+        
+        # Estilo para conteúdo de arquivo (monoespaçado)
+        self.styles.add(ParagraphStyle(
+            name='FileContent',
+            parent=self.styles['Code'],
+            fontName='Courier',
+            fontSize=9,
+            leftIndent=10,
+            rightIndent=10,
+            spaceAfter=3,
+            spaceBefore=3,
+            leading=11,  # Espaçamento entre linhas um pouco maior que o tamanho da fonte
+            preserveLineBreaks=True,
+            alignment=TA_LEFT,
+            wordWrap='LTR'  # Quebra de linha da esquerda para direita
+        ))
+        
+        # Estilo para cabeçalho de arquivo
+        self.styles.add(ParagraphStyle(
+            name='FileHeader',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            textColor=colors.grey,
+            spaceAfter=6,
+            leftIndent=10
+        ))
+
+    def add_title_page(self, title: str, folder_path: str):
+        """Adiciona página de título ao PDF"""
+        title_style = ParagraphStyle(
+            name='Title',
+            parent=self.styles['Title'],
+            fontSize=24,
+            spaceAfter=30,
+            alignment=TA_CENTER
+        )
+        
+        subtitle_style = ParagraphStyle(
+            name='Subtitle',
+            parent=self.styles['Normal'],
+            fontSize=12,
+            alignment=TA_CENTER,
+            textColor=colors.grey
+        )
+        
+        self.story.append(Spacer(1, 2*inch))
+        self.story.append(Paragraph(title, title_style))
+        self.story.append(Spacer(1, 0.5*inch))
+        self.story.append(Paragraph(f"Conteúdo da pasta: {folder_path}", subtitle_style))
+        self.story.append(Spacer(1, 0.3*inch))
+        self.story.append(Paragraph(f"Gerado em: {self._get_current_date()}", subtitle_style))
+        self.story.append(PageBreak())
+
+    def add_table_of_contents(self, file_list: List[str]):
+        """Adiciona índice ao PDF"""
+        self.story.append(Paragraph("Índice", self.styles['TOCTitle']))
+        self.story.append(Spacer(1, 20))
+        
+        for i, filename in enumerate(file_list, 1):
+            toc_item = f"{i}. Arquivo: {filename}"
+            self.story.append(Paragraph(toc_item, self.styles['TOCItem']))
+        
+        self.story.append(PageBreak())
+
+    def add_file_section(self, count: int, filename: str, content: str, file_path: str):
+        """Adiciona uma seção para um arquivo específico"""
+        # Título da seção
+        section_title = f"{count}. Arquivo: {filename}"
+        self.story.append(Paragraph(section_title, self.styles['SectionTitle']))
+        
+        # Informações do arquivo
+        # file_info = f"Caminho: {file_path} | Tamanho: {self._get_file_size(file_path)}"
+        # self.story.append(Paragraph(file_info, self.styles['FileHeader']))
+        self.story.append(Spacer(1, 8))
+        
+        # Linha separadora
+        # line_data = [['─' * 100]]
+        # line_table = Table(line_data, colWidths=[7*inch])
+        # line_table.setStyle(TableStyle([
+        #     ('TEXTCOLOR', (0, 0), (-1, -1), colors.grey),
+        #     ('FONTNAME', (0, 0), (-1, -1), 'Courier'),
+        #     ('FONTSIZE', (0, 0), (-1, -1), 8),
+        #     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        # ]))
+        # self.story.append(line_table)
+        # self.story.append(Spacer(1, 8))
+        
+        # Conteúdo do arquivo
+        if content.strip():
+            # Para arquivos muito grandes, processa em chunks menores
+            if len(content) > 50000:  # Se arquivo > 50KB
+                chunks = self._split_content_into_chunks(content, 40000)
+                for i, chunk in enumerate(chunks):
+                    if i > 0:
+                        self.story.append(Spacer(1, 10))
+                        continuation_note = f"... continuação do arquivo {filename} (parte {i+1}) ..."
+                        self.story.append(Paragraph(continuation_note, self.styles['FileHeader']))
+                        self.story.append(Spacer(1, 5))
+                    
+                    processed_chunk = self._process_content(chunk)
+                    self.story.append(Paragraph(processed_chunk, self.styles['FileContent']))
+            else:
+                processed_content = self._process_content(content)
+                self.story.append(Paragraph(processed_content, self.styles['FileContent']))
+        else:
+            empty_msg = "&lt;Arquivo vazio ou sem conteúdo legível&gt;"
+            self.story.append(Paragraph(empty_msg, self.styles['FileContent']))
+        
+        # Quebra de página após cada seção
+        self.story.append(PageBreak())
+
+    def _process_content(self, content: str) -> str:
+        """Processa o conteúdo preservando formatação exata e escapando caracteres especiais"""
+        # Escapa caracteres especiais do HTML/XML
+        content = content.replace('&', '&amp;')
+        content = content.replace('<', '&lt;')
+        content = content.replace('>', '&gt;')
+        
+        # Preserva quebras de linha e todos os espaços/tabs exatamente como estão
+        lines = content.split('\n')
+        processed_lines = []
+        
+        for line in lines:
+            # Preserva exatamente todos os espaços e tabs
+            processed_line = ""
+            for char in line:
+                if char == ' ':
+                    processed_line += '&nbsp;'
+                elif char == '\t':
+                    processed_line += '&nbsp;&nbsp;&nbsp;&nbsp;'  # Tab = 4 espaços
+                else:
+                    processed_line += char
+            processed_lines.append(processed_line)
+        
+        return '<br/>'.join(processed_lines)
+
+    def _split_content_into_chunks(self, content: str, chunk_size: int) -> List[str]:
+        """Divide conteúdo grande em chunks menores para melhor processamento"""
+        chunks = []
+        lines = content.split('\n')
+        current_chunk = []
+        current_size = 0
+        
+        for line in lines:
+            line_size = len(line) + 1  # +1 para a quebra de linha
+            if current_size + line_size > chunk_size and current_chunk:
+                chunks.append('\n'.join(current_chunk))
+                current_chunk = [line]
+                current_size = line_size
+            else:
+                current_chunk.append(line)
+                current_size += line_size
+        
+        if current_chunk:
+            chunks.append('\n'.join(current_chunk))
+        
+        return chunks
+
+    def _get_file_size(self, file_path: str) -> str:
+        """Retorna o tamanho do arquivo formatado"""
+        try:
+            size = os.path.getsize(file_path)
+            if size < 1024:
+                return f"{size} bytes"
+            elif size < 1024 * 1024:
+                return f"{size/1024:.1f} KB"
+            else:
+                return f"{size/(1024*1024):.1f} MB"
+        except OSError:
+            return "Tamanho desconhecido"
+
+    def _get_current_date(self) -> str:
+        """Retorna a data atual formatada"""
+        from datetime import datetime
+        return datetime.now().strftime("%d/%m/%Y às %H:%M")
+
+    def build(self):
+        """Constrói e salva o PDF"""
+        try:
+            self.doc.build(self.story)
+            logger.info(f"PDF gerado com sucesso: {self.output_file}")
+        except Exception as e:
+            logger.error(f"Erro ao gerar PDF: {e}")
+            raise
+
+class FileProcessor:
+    """Classe para processar arquivos de uma pasta"""
+    
+    def __init__(self, folder_path: str, include_extensions: Optional[Set[str]] = None,
+                 exclude_extensions: Optional[Set[str]] = None):
+        self.folder_path = Path(folder_path)
+        self.include_extensions = include_extensions or set()
+        self.exclude_extensions = exclude_extensions or set()
+        
+    def get_files(self) -> List[Path]:
+        """Retorna lista de arquivos filtrados"""
+        if not self.folder_path.exists():
+            raise FileNotFoundError(f"Pasta não encontrada: {self.folder_path}")
+        
+        if not self.folder_path.is_dir():
+            raise NotADirectoryError(f"Caminho não é uma pasta: {self.folder_path}")
+        
+        files = []
+        for file_path in self.folder_path.iterdir():
+            if file_path.is_file() and self._should_include_file(file_path):
+                files.append(file_path)
+        
+        # Ordena arquivos por nome
+        files.sort(key=lambda x: x.name.lower())
+        return files
+    
+    def _should_include_file(self, file_path: Path) -> bool:
+        """Verifica se o arquivo deve ser incluído baseado nos filtros"""
+        extension = file_path.suffix.lower()
+        
+        # Se há extensões para incluir, só inclui se estiver na lista
+        if self.include_extensions:
+            return extension in self.include_extensions
+        
+        # Se há extensões para excluir, não inclui se estiver na lista
+        if self.exclude_extensions:
+            return extension not in self.exclude_extensions
+        
+        return True
+    
+    def read_file_content(self, file_path: Path) -> str:
+        """Lê o conteúdo de um arquivo com encoding UTF-8"""
+        try:
+            # Primeiro tenta UTF-8
+            with open(file_path, 'r', encoding='utf-8', errors='strict') as f:
+                return f.read()
+        except UnicodeDecodeError:
+            logger.warning(f"Erro UTF-8 em {file_path}. Tentando UTF-8 com ignore...")
+            try:
+                # Tenta UTF-8 ignorando caracteres problemáticos
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                    logger.warning(f"Arquivo {file_path} lido com UTF-8 (alguns caracteres ignorados)")
+                    return content
+            except Exception:
+                # Como último recurso, tenta latin-1
+                try:
+                    with open(file_path, 'r', encoding='latin-1') as f:
+                        content = f.read()
+                        logger.warning(f"Arquivo {file_path} lido com encoding latin-1")
+                        return content
+                except Exception as e:
+                    logger.error(f"Não foi possível ler o arquivo {file_path}: {e}")
+                    return f"[ERRO: Não foi possível ler o conteúdo do arquivo]\n[Erro específico: {e}]"
+        except FileNotFoundError:
+            logger.error(f"Arquivo não encontrado: {file_path}")
+            return "[ERRO: Arquivo não encontrado]"
+        except PermissionError:
+            logger.error(f"Sem permissão para ler: {file_path}")
+            return "[ERRO: Sem permissão para ler o arquivo]"
+        except Exception as e:
+            logger.error(f"Erro inesperado ao ler arquivo {file_path}: {e}")
+            return f"[ERRO: {e}]"
+
+def parse_extensions(extensions_str: str) -> Set[str]:
+    """Converte string de extensões em conjunto"""
+    if not extensions_str:
+        return set()
+    
+    extensions = set()
+    for ext in extensions_str.split(','):
+        ext = ext.strip()
+        if not ext.startswith('.'):
+            ext = '.' + ext
+        extensions.add(ext.lower())
+    
+    return extensions
 
 def main():
+    """Função principal do CLI"""
     parser = argparse.ArgumentParser(
-        description="Gera PDF com conteúdo de arquivos de texto de uma pasta",
+        description="Gera PDF estruturado com conteúdo de arquivos de uma pasta",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Exemplos de uso:
   %(prog)s /caminho/para/pasta
-  %(prog)s /caminho/para/pasta -o meu_arquivo.pdf
-  %(prog)s /caminho/para/pasta --include .py .js .html
-  %(prog)s /caminho/para/pasta --exclude .log .tmp
-  %(prog)s /caminho/para/pasta --include .py --exclude __pycache__
+  %(prog)s /caminho/para/pasta -o meu_documento.pdf
+  %(prog)s /caminho/para/pasta --include txt,py,js
+  %(prog)s /caminho/para/pasta --exclude pdf,exe,zip
+  %(prog)s /caminho/para/pasta --title "Meu Projeto"
         """
     )
     
     parser.add_argument(
-        'source_folder',
-        help='Pasta contendo os arquivos para incluir no PDF'
+        'folder',
+        help='Caminho para a pasta contendo os arquivos'
     )
     
     parser.add_argument(
@@ -339,71 +371,91 @@ Exemplos de uso:
     )
     
     parser.add_argument(
+        '--title',
+        default='Compilação de Arquivos',
+        help='Título do documento PDF (padrão: "Compilação de Arquivos")'
+    )
+    
+    parser.add_argument(
         '--include',
-        nargs='+',
-        help='Incluir apenas arquivos com estas extensões (ex: .py .js .html)'
+        help='Extensões de arquivo para incluir (separadas por vírgula, ex: txt,py,js)'
     )
     
     parser.add_argument(
         '--exclude',
-        nargs='+',
-        help='Excluir arquivos com estas extensões (ex: .log .tmp .cache)'
+        help='Extensões de arquivo para excluir (separadas por vírgula, ex: pdf,exe,zip)'
     )
     
     parser.add_argument(
         '-v', '--verbose',
         action='store_true',
-        help='Saída detalhada'
+        help='Modo verboso (mais informações de log)'
     )
     
     args = parser.parse_args()
     
+    # Configura nível de log
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+    
     try:
-        # Verificar se a pasta existe
-        if not os.path.isdir(args.source_folder):
-            print(f"Erro: '{args.source_folder}' não é uma pasta válida", file=sys.stderr)
+        # Processa extensões
+        include_extensions = parse_extensions(args.include) if args.include else None
+        exclude_extensions = parse_extensions(args.exclude) if args.exclude else None
+        
+        # Valida argumentos conflitantes
+        if include_extensions and exclude_extensions:
+            logger.error("Não é possível usar --include e --exclude ao mesmo tempo")
             sys.exit(1)
         
-        # Converter extensões para lowercase e adicionar ponto se necessário
-        include_extensions = None
-        if args.include:
-            include_extensions = []
-            for ext in args.include:
-                if not ext.startswith('.'):
-                    ext = '.' + ext
-                include_extensions.append(ext.lower())
+        logger.info(f"Processando pasta: {args.folder}")
+        logger.info(f"Arquivo de saída: {args.output}")
         
-        exclude_extensions = None
-        if args.exclude:
-            exclude_extensions = []
-            for ext in args.exclude:
-                if not ext.startswith('.'):
-                    ext = '.' + ext
-                exclude_extensions.append(ext.lower())
+        if include_extensions:
+            logger.info(f"Incluindo extensões: {', '.join(include_extensions)}")
+        elif exclude_extensions:
+            logger.info(f"Excluindo extensões: {', '.join(exclude_extensions)}")
         
-        if args.verbose:
-            print(f"Pasta de origem: {args.source_folder}")
-            print(f"Arquivo de saída: {args.output}")
-            if include_extensions:
-                print(f"Incluir extensões: {include_extensions}")
-            if exclude_extensions:
-                print(f"Excluir extensões: {exclude_extensions}")
-            print()
+        # Processa arquivos
+        processor = FileProcessor(args.folder, include_extensions, exclude_extensions)
+        files = processor.get_files()
         
-        # Gerar PDF
-        generator = PDFGenerator(args.output)
-        generator.generate_pdf(
-            args.source_folder,
-            include_extensions=include_extensions,
-            exclude_extensions=exclude_extensions
-        )
+        if not files:
+            logger.warning("Nenhum arquivo encontrado na pasta especificada")
+            sys.exit(1)
+        
+        logger.info(f"Encontrados {len(files)} arquivo(s) para processar")
+        
+        # Gera PDF
+        pdf_generator = PDFGenerator(args.output)
+        
+        # Adiciona página de título
+        pdf_generator.add_title_page(args.title, args.folder)
+        
+        # Adiciona índice
+        file_names = [f.name for f in files]
+        pdf_generator.add_table_of_contents(file_names)
+        
+        # Processa cada arquivo
+        for i, file_path in enumerate(files, 1):
+            logger.info(f"Processando ({i}/{len(files)}): {file_path.name}")
+            content = processor.read_file_content(file_path)
+            pdf_generator.add_file_section(i, file_path.name, content, str(file_path))
+        
+        # Gera o PDF final
+        pdf_generator.build()
+        
+        logger.info("Processo concluído com sucesso!")
         
     except KeyboardInterrupt:
-        print("\nOperação cancelada pelo usuário", file=sys.stderr)
+        logger.info("Operação cancelada pelo usuário")
         sys.exit(1)
     except Exception as e:
-        print(f"Erro: {e}", file=sys.stderr)
+        logger.error(f"Erro durante a execução: {e}")
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
         sys.exit(1)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

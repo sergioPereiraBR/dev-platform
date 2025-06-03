@@ -1,10 +1,44 @@
 # src/dev_platform/infrastructure/database/unit_of_work.py
 from typing import Optional
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+
+# Importe a CONFIG global
+from infrastructure.config import CONFIG
 from application.user.ports import UnitOfWork as AbstractUnitOfWork
 from infrastructure.database.session import db_manager
 from infrastructure.database.repositories import SQLUserRepository
 
+
+# Estas variáveis devem ser criadas uma única vez na aplicação.
+# Poderiam estar em um módulo 'session.py' separado ou aqui,
+# mas fora da classe para garantir que não sejam recriadas.
+_async_engine = None
+_async_session_factory = None
+
+async def get_async_engine():
+    """Cria e retorna o engine assíncrono, garantindo que seja um singleton."""
+    global _async_engine
+    if _async_engine is None:
+        _async_engine = create_async_engine(
+            CONFIG.database_url,
+            echo=CONFIG.get("DB_ECHO", "False").lower() == "true",
+            pool_size=int(CONFIG.get("DB_POOL_SIZE", 10)),
+            max_overflow=int(CONFIG.get("DB_MAX_OVERFLOW", 20))
+        )
+    return _async_engine
+
+async def get_async_session_factory():
+    """Cria e retorna a factory de sessão assíncrona, garantindo que seja um singleton."""
+    global _async_session_factory
+    if _async_session_factory is None:
+        engine = await get_async_engine() # Garante que o engine está criado
+        _async_session_factory = sessionmaker(
+            engine,
+            class_=AsyncSession,
+            expire_on_commit=False
+        )
+    return _async_session_factory
 
 class SQLUnitOfWork(AbstractUnitOfWork):
     def __init__(self):
@@ -35,6 +69,7 @@ class SQLUnitOfWork(AbstractUnitOfWork):
                 pass
         finally:
             try:
+                await self._session.close()
                 await self._session_context.__aexit__(exc_type, exc_val, exc_tb)
                 self._session = None
                 self.users = None
@@ -48,3 +83,13 @@ class SQLUnitOfWork(AbstractUnitOfWork):
     async def rollback(self):
         if self._session:
             await self._session.rollback()
+
+    # NOVO MÉTODO PARA FECHAR O ENGINE/POOL DE CONEXÕES
+    @staticmethod
+    async def dispose_engine():
+        """Fecha o engine SQLAlchemy e libera o pool de conexões."""
+        global _async_engine
+        if _async_engine:
+            await _async_engine.dispose()
+            _async_engine = None # Resetar para permitir recriação se necessário
+        #print("SQLAlchemy engine disposed.") # Para depuração

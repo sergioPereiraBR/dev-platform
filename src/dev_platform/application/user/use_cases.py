@@ -218,16 +218,16 @@ class UseCaseFactory:
         self._composition_root = composition_root
     
     def create_user_use_case(self) -> CreateUserUseCase:
-        return self._composition_root.create_user_use_case()
+        return self._composition_root.create_user_use_case
     
     def list_users_use_case(self) -> ListUsersUseCase:
-        return self._composition_root.list_users_use_case()
+        return self._composition_root.list_users_use_case
     
     def update_user_use_case(self) -> UpdateUserUseCase:
-        return self._composition_root.update_user_use_case()
+        return self._composition_root.update_user_use_case
     
     def get_user_use_case(self) -> GetUserUseCase:
-        return self._composition_root.get_user_use_case()
+        return self._composition_root.get_user_use_case
     
     def delete_user_use_case(self) -> DeleteUserUseCase:
-        return self._composition_root.delete_user_use_case()
+        return self._composition_root.delete_user_use_case
