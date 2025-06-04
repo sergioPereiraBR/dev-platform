@@ -20,7 +20,7 @@ Para começar a usar Dev Platform, consulte o [Guia de Início Rápido](user-gui
 
 O projeto está organizado seguindo princípios de arquitetura limpa:
 
-```
+```txt
 src/
 └── dev_platform/
     ├── __init__.py

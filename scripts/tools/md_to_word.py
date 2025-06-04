@@ -3,6 +3,7 @@
 """
 Conversor de Markdown para Word (.docx) - Versão Corrigida
 Converte arquivos .md para .docx usando pypandoc com melhor suporte a Mermaid
+CORREÇÃO: Resolve problemas de caminhos e codificação para imagens Mermaid
 """
 
 import os
@@ -12,6 +13,7 @@ import re
 import tempfile
 import subprocess
 import shutil
+import json
 from pathlib import Path
 import pypandoc
 
@@ -21,6 +23,8 @@ def verificar_dependencias():
     mermaid_ok = False
     pandoc_version = None
     mermaid_cmd = None
+    chrome_ok = False
+    chrome_path = None
     
     # Verificar Pandoc
     try:
@@ -35,14 +39,69 @@ def verificar_dependencias():
         print("- Ou baixe de: https://pandoc.org/installing.html")
         pandoc_ok = False
     
-    # Verificar Mermaid CLI - múltiplas tentativas
+    # Verificar Chrome/Chromium no sistema
+    chrome_commands = [
+        'google-chrome-stable',
+        'google-chrome', 
+        'chromium-browser', 
+        'chromium', 
+        'chrome'
+    ]
+    
+    print("🔍 Verificando Chrome/Chromium no sistema...")
+    for cmd in chrome_commands:
+        try:
+            result = subprocess.run([cmd, '--version'], 
+                                  capture_output=True, text=True, timeout=10)
+            if result.returncode == 0:
+                print(f"✅ Chrome/Chromium encontrado: {cmd}")
+                print(f"   Versão: {result.stdout.strip()}")
+                chrome_ok = True
+                # Obter caminho completo do executável
+                chrome_path_result = subprocess.run(['which', cmd], 
+                                                  capture_output=True, text=True)
+                if chrome_path_result.returncode == 0:
+                    chrome_path = chrome_path_result.stdout.strip()
+                    print(f"   Caminho: {chrome_path}")
+                break
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            continue
+    
+    # Verificar Chrome do Puppeteer - buscar versões mais recentes primeiro
+    puppeteer_chrome_patterns = [
+        os.path.expanduser("~/.cache/puppeteer/chrome/linux-*/chrome-linux*/chrome"),
+        os.path.expanduser("~/.cache/ms-playwright/chromium-*/chrome-linux/chrome"),
+        os.path.expanduser("~/.local/share/ms-playwright/chromium-*/chrome-linux/chrome")
+    ]
+    
+    puppeteer_paths = []
+    
+    try:
+        import glob
+        for pattern in puppeteer_chrome_patterns:
+            paths = glob.glob(pattern)
+            puppeteer_paths.extend(paths)
+        
+        # Ordenar por data de modificação (mais recente primeiro)
+        if puppeteer_paths:
+            puppeteer_paths.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+            print(f"✅ Chrome do Puppeteer encontrado: {puppeteer_paths[0]}")
+            if not chrome_ok:
+                chrome_ok = True
+                chrome_path = puppeteer_paths[0]
+    except Exception:
+        pass
+    
+    if not chrome_ok:
+        print("❌ Chrome/Chromium não encontrado!")
+    
+    # Verificar Mermaid CLI
     comandos_mermaid = ['mmdc', 'mermaid', 'mermaid-cli']
     
     print("🔍 Verificando Mermaid CLI...")
     
     for cmd in comandos_mermaid:
         try:
-            # Tentar --version primeiro
             result = subprocess.run([cmd, '--version'], 
                                   capture_output=True, text=True, timeout=15)
             if result.returncode == 0:
@@ -51,88 +110,37 @@ def verificar_dependencias():
                 mermaid_ok = True
                 mermaid_cmd = cmd
                 break
-        except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
-            print(f"   Tentativa {cmd}: {type(e).__name__}")
-            continue
-        
-        # Se --version falhou, tentar --help
-        try:
-            result = subprocess.run([cmd, '--help'], 
-                                  capture_output=True, text=True, timeout=15)
-            if result.returncode == 0 and 'mermaid' in result.stdout.lower():
-                print(f"✅ Mermaid CLI encontrado: {cmd}")
-                mermaid_ok = True
-                mermaid_cmd = cmd
-                break
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             continue
     
     if not mermaid_ok:
         print("❌ Mermaid CLI não encontrado!")
-        print("\n📋 Para instalar o Mermaid CLI:")
-        print("1. Certifique-se que Node.js está instalado:")
-        print("   - Download: https://nodejs.org/")
-        print("   - Versão recomendada: LTS")
-        print("\n2. Instale o Mermaid CLI globalmente:")
-        print("   npm install -g @mermaid-js/mermaid-cli")
-        print("\n3. Alternativamente, tente:")
-        print("   npm install -g mermaid.cli")
-        print("\n4. Reinicie o terminal após a instalação")
-        
-        print("\n🔍 Diagnóstico do ambiente:")
-        
-        # Verificar se Node.js está instalado
-        try:
-            node_result = subprocess.run(['node', '--version'], 
-                                       capture_output=True, text=True, timeout=10)
-            if node_result.returncode == 0:
-                print(f"   ✅ Node.js: {node_result.stdout.strip()}")
-            else:
-                print("   ❌ Node.js não encontrado")
-        except Exception:
-            print("   ❌ Node.js não encontrado")
-        
-        # Verificar se npm está instalado
-        try:
-            npm_result = subprocess.run(['npm', '--version'], 
-                                      capture_output=True, text=True, timeout=10)
-            if npm_result.returncode == 0:
-                print(f"   ✅ npm: {npm_result.stdout.strip()}")
-                
-                # Verificar pacotes globais do npm
-                try:
-                    npm_list = subprocess.run(['npm', 'list', '-g', '--depth=0'], 
-                                            capture_output=True, text=True, timeout=15)
-                    if 'mermaid' in npm_list.stdout.lower():
-                        print("   ℹ️  Mermaid encontrado nos pacotes npm, mas comando não acessível")
-                        print("   💡 Tente adicionar o diretório npm global ao PATH")
-                except Exception:
-                    pass
-            else:
-                print("   ❌ npm não encontrado")
-        except Exception:
-            print("   ❌ npm não encontrado")
+        print_mermaid_install_instructions()
     
-    return pandoc_ok, mermaid_ok, pandoc_version, mermaid_cmd
+    return pandoc_ok, mermaid_ok, pandoc_version, mermaid_cmd, chrome_ok, chrome_path, puppeteer_paths
+
+def print_mermaid_install_instructions():
+    """Imprime instruções de instalação do Mermaid"""
+    print("\n📋 Para instalar o Mermaid CLI:")
+    print("1. Certifique-se que Node.js está instalado:")
+    print("   - Download: https://nodejs.org/")
+    print("   - Versão recomendada: LTS")
+    print("\n2. Instale o Mermaid CLI globalmente:")
+    print("   npm install -g @mermaid-js/mermaid-cli")
+    print("\n3. Instale o Chrome headless para Puppeteer:")
+    print("   npx puppeteer browsers install chrome")
 
 def obter_estilo_highlight_compativel(pandoc_version):
-    """
-    Retorna um estilo de highlight compatível com a versão do Pandoc
-    """
-    # Estilos mais seguros e amplamente suportados
+    """Retorna um estilo de highlight compatível com a versão do Pandoc"""
     estilos_preferidos = ['pygments', 'kate', 'espresso', 'haddock', 'tango']
     
-    # Para versões mais antigas, usar pygments como padrão
     if pandoc_version and pandoc_version.startswith('1.'):
         return 'pygments'
     
-    # Para versões mais novas, tentar pygments primeiro
     return 'pygments'
 
 def extrair_diagramas_mermaid(conteudo_md):
-    """
-    Extrai diagramas Mermaid do conteúdo Markdown
-    """
+    """Extrai diagramas Mermaid do conteúdo Markdown"""
     diagramas = []
     linhas = conteudo_md.split('\n')
     
@@ -140,32 +148,53 @@ def extrair_diagramas_mermaid(conteudo_md):
     while i < len(linhas):
         linha = linhas[i].strip()
         
-        # Detectar início de bloco Mermaid
         if linha.startswith('```mermaid'):
             inicio = i
             codigo_mermaid = []
             i += 1
             
-            # Coletar conteúdo do diagrama
             while i < len(linhas) and not linhas[i].strip().startswith('```'):
                 codigo_mermaid.append(linhas[i])
                 i += 1
             
-            if i < len(linhas):  # Encontrou o fim do bloco
+            if i < len(linhas):
                 fim = i
                 codigo_completo = '\n'.join(codigo_mermaid).strip()
-                if codigo_completo:  # Só adicionar se tem conteúdo
+                if codigo_completo:
                     diagramas.append((codigo_completo, inicio, fim))
         
         i += 1
     
     return diagramas
 
-def gerar_imagem_mermaid(codigo_mermaid, arquivo_saida, mermaid_cmd='mmdc'):
-    """
-    Gera imagem PNG a partir de código Mermaid
-    """
+def obter_chrome_mais_recente():
+    """Obtém o caminho do Chrome mais recente do Puppeteer"""
+    import glob
+    
+    # Padrões para buscar Chrome do Puppeteer
+    puppeteer_chrome_patterns = [
+        os.path.expanduser("~/.cache/puppeteer/chrome/linux-*/chrome-linux*/chrome"),
+        os.path.expanduser("~/.cache/ms-playwright/chromium-*/chrome-linux/chrome"),
+        os.path.expanduser("~/.local/share/ms-playwright/chromium-*/chrome-linux/chrome")
+    ]
+    
+    all_chrome_paths = []
+    
+    for pattern in puppeteer_chrome_patterns:
+        paths = glob.glob(pattern)
+        all_chrome_paths.extend(paths)
+    
+    if all_chrome_paths:
+        # Ordenar por data de modificação (mais recente primeiro)
+        all_chrome_paths.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+        return all_chrome_paths[0]
+    
+    return None
+
+def gerar_imagem_mermaid(codigo_mermaid, arquivo_saida, mermaid_cmd='mmdc', chrome_path=None, puppeteer_paths=None, pasta_temp=None):
+    """Gera imagem PNG a partir de código Mermaid"""
     temp_mermaid = None
+    
     try:
         # Criar arquivo temporário com o código Mermaid
         with tempfile.NamedTemporaryFile(mode='w', suffix='.mmd', delete=False, encoding='utf-8') as temp_file:
@@ -178,37 +207,65 @@ def gerar_imagem_mermaid(codigo_mermaid, arquivo_saida, mermaid_cmd='mmdc'):
         # Criar diretório de saída se não existir
         os.makedirs(os.path.dirname(arquivo_saida), exist_ok=True)
         
-        # Executar mermaid CLI para gerar imagem
-        cmd = [
-            mermaid_cmd, 
-            '-i', temp_mermaid, 
-            '-o', arquivo_saida,
-            '-b', 'white',  # Background branco
-            '-s', '2',      # Scale 2x para melhor qualidade
-            '--theme', 'default'  # Tema padrão
-        ]
+        # Obter Chrome mais recente automaticamente
+        chrome_atual = obter_chrome_mais_recente()
         
-        print(f"   🔧 Executando: {' '.join(cmd)}")
-        
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        
-        print(f"   📤 Return code: {result.returncode}")
-        if result.stdout:
-            print(f"   📝 STDOUT: {result.stdout}")
-        if result.stderr:
-            print(f"   ⚠️  STDERR: {result.stderr}")
-        
-        if result.returncode == 0 and os.path.exists(arquivo_saida):
-            file_size = os.path.getsize(arquivo_saida)
-            print(f"   ✅ Diagrama gerado com sucesso! Tamanho: {file_size} bytes")
-            return True
-        else:
-            print(f"   ❌ Falha na geração do diagrama")
-            return False
+        if chrome_atual and os.path.exists(chrome_atual):
+            print(f"   🌟 Usando Chrome mais recente: {chrome_atual}")
             
-    except subprocess.TimeoutExpired:
-        print(f"   ⏰ Timeout ao gerar diagrama Mermaid")
+            env = os.environ.copy()
+            env['PUPPETEER_EXECUTABLE_PATH'] = chrome_atual
+            
+            try:
+                result = subprocess.run([
+                    mermaid_cmd, 
+                    '-i', temp_mermaid, 
+                    '-o', arquivo_saida,
+                    '-b', 'white',
+                    '-s', '2',
+                    '--theme', 'default'
+                ], capture_output=True, text=True, timeout=60, env=env)
+                
+                if result.returncode == 0 and os.path.exists(arquivo_saida):
+                    file_size = os.path.getsize(arquivo_saida)
+                    print(f"   ✅ Diagrama gerado com sucesso! Tamanho: {file_size} bytes")
+                    return True
+                else:
+                    print(f"   ⚠️  Falha com Chrome atual, tentando instalação...")
+            except Exception as e:
+                print(f"   ⚠️  Erro com Chrome atual: {e}")
+        
+        # Se falhou, tentar instalar Chrome novo
+        print("   🔧 Instalando Chrome atualizado...")
+        if instalar_chrome_puppeteer():
+            # Buscar Chrome recém-instalado
+            chrome_novo = obter_chrome_mais_recente()
+            if chrome_novo and os.path.exists(chrome_novo):
+                print(f"   🌟 Usando Chrome recém-instalado: {chrome_novo}")
+                
+                env = os.environ.copy()
+                env['PUPPETEER_EXECUTABLE_PATH'] = chrome_novo
+                
+                try:
+                    result = subprocess.run([
+                        mermaid_cmd, 
+                        '-i', temp_mermaid, 
+                        '-o', arquivo_saida,
+                        '-b', 'white',
+                        '-s', '2',
+                        '--theme', 'default'
+                    ], capture_output=True, text=True, timeout=60, env=env)
+                    
+                    if result.returncode == 0 and os.path.exists(arquivo_saida):
+                        file_size = os.path.getsize(arquivo_saida)
+                        print(f"   ✅ Diagrama gerado após instalação! Tamanho: {file_size} bytes")
+                        return True
+                except Exception as e:
+                    print(f"   ❌ Erro após instalação: {e}")
+        
+        print(f"   ❌ Falha ao gerar diagrama")
         return False
+        
     except Exception as e:
         print(f"   ❌ Erro inesperado: {str(e)}")
         return False
@@ -219,12 +276,54 @@ def gerar_imagem_mermaid(codigo_mermaid, arquivo_saida, mermaid_cmd='mmdc'):
                 os.unlink(temp_mermaid)
                 print(f"   🧹 Arquivo temporário removido")
             except Exception:
-                print(f"   ⚠️  Não foi possível remover arquivo temporário: {temp_mermaid}")
+                pass
 
-def processar_mermaid_no_markdown(arquivo_md, pasta_temp, mermaid_cmd='mmdc'):
-    """
-    Processa diagramas Mermaid e substitui por imagens no Markdown
-    """
+def instalar_chrome_puppeteer():
+    """Tenta instalar o Chrome para Puppeteer"""
+    print("🔧 Instalando Chrome para Puppeteer...")
+    try:
+        # Tentar diferentes comandos de instalação
+        comandos = [
+            ['npx', 'puppeteer', 'browsers', 'install', 'chrome'],
+            ['npx', '@puppeteer/browsers', 'install', 'chrome@stable'],
+            ['npx', 'puppeteer', 'browsers', 'install', 'chrome@stable']
+        ]
+        
+        for cmd in comandos:
+            print(f"   Executando: {' '.join(cmd)}")
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+                if result.returncode == 0:
+                    print("✅ Chrome instalado com sucesso!")
+                    return True
+                else:
+                    if result.stderr and "already installed" in result.stderr.lower():
+                        print("✅ Chrome já estava instalado!")
+                        return True
+                    if result.stderr:
+                        print(f"   Falhou: {result.stderr[:100]}")
+            except Exception as e:
+                print(f"   Erro: {e}")
+                continue
+        
+        return False
+    except Exception as e:
+        print(f"❌ Erro ao instalar Chrome: {e}")
+        return False
+
+def criar_pasta_imagens_temp(arquivo_base):
+    """Cria uma pasta temporária para armazenar as imagens durante a conversão"""
+    # Usar um nome simples sem caracteres especiais
+    nome_base = Path(arquivo_base).stem
+    # Normalizar nome removendo caracteres problemáticos
+    nome_normalizado = re.sub(r'[^\w\-_.]', '_', nome_base)
+    pasta_temp = tempfile.mkdtemp(prefix=f"mermaid_{nome_normalizado}_")
+    
+    print(f"📁 Pasta temporária de imagens criada: {pasta_temp}")
+    return pasta_temp
+
+def processar_mermaid_no_markdown(arquivo_md, mermaid_cmd='mmdc', chrome_path=None, puppeteer_paths=None):
+    """Processa diagramas Mermaid e substitui por imagens no Markdown"""
     # Ler conteúdo do arquivo
     with open(arquivo_md, 'r', encoding='utf-8') as f:
         conteudo = f.read()
@@ -234,13 +333,17 @@ def processar_mermaid_no_markdown(arquivo_md, pasta_temp, mermaid_cmd='mmdc'):
     
     if not diagramas:
         print("   ℹ️  Nenhum diagrama Mermaid encontrado")
-        return arquivo_md  # Sem diagramas, retorna arquivo original
+        return arquivo_md, None
     
     print(f"🔍 Encontrados {len(diagramas)} diagramas Mermaid")
     
+    # Criar pasta temporária para imagens
+    pasta_temp = criar_pasta_imagens_temp(arquivo_md)
+    
     # Processar cada diagrama
     linhas = conteudo.split('\n')
-    offset = 0  # Para ajustar índices após modificações
+    offset = 0
+    diagramas_processados = 0
     
     for i, (codigo, inicio, fim) in enumerate(diagramas):
         print(f"\n📊 Processando diagrama {i+1}/{len(diagramas)}...")
@@ -249,36 +352,39 @@ def processar_mermaid_no_markdown(arquivo_md, pasta_temp, mermaid_cmd='mmdc'):
         inicio_adj = inicio - offset
         fim_adj = fim - offset
         
-        # Gerar imagem
-        nome_imagem = f"mermaid_diagram_{i+1}.png"
+        # Gerar imagem na pasta temporária com nome simples
+        nome_imagem = f"diagram_{i+1}.png"
         caminho_imagem = os.path.join(pasta_temp, nome_imagem)
         
-        if gerar_imagem_mermaid(codigo, caminho_imagem, mermaid_cmd):
-            # Substituir bloco Mermaid por referência à imagem
+        if gerar_imagem_mermaid(codigo, caminho_imagem, mermaid_cmd, chrome_path, puppeteer_paths):
+            # Substituir bloco Mermaid por referência à imagem usando caminho absoluto
             substituicao = f"![Diagrama Mermaid {i+1}]({caminho_imagem})"
             
             # Remover linhas do diagrama e inserir referência à imagem
             linhas = linhas[:inicio_adj] + [substituicao] + linhas[fim_adj+1:]
             
-            # Atualizar offset (removemos fim-inicio+1 linhas e adicionamos 1)
+            # Atualizar offset
             offset += (fim - inicio + 1) - 1
+            diagramas_processados += 1
             
             print(f"   ✅ Diagrama {i+1} processado com sucesso")
         else:
             print(f"   ⚠️  Mantendo código Mermaid original para diagrama {i+1}")
     
-    # Salvar arquivo Markdown processado
-    arquivo_processado = os.path.join(pasta_temp, f"processed_{os.path.basename(arquivo_md)}")
+    # Salvar arquivo Markdown processado temporariamente
+    arquivo_processado = os.path.join(pasta_temp, 'processed.md')
     with open(arquivo_processado, 'w', encoding='utf-8') as f:
         f.write('\n'.join(linhas))
     
     print(f"📝 Arquivo processado salvo: {arquivo_processado}")
-    return arquivo_processado
+    print(f"🎯 Diagramas convertidos: {diagramas_processados}/{len(diagramas)}")
+    
+    return arquivo_processado, pasta_temp
 
-def converter_arquivo(arquivo_md, arquivo_saida=None, formato_saida='docx', processar_mermaid=True, pandoc_version=None, mermaid_cmd='mmdc'):
-    """
-    Converte um arquivo Markdown para Word
-    """
+def converter_arquivo(arquivo_md, arquivo_saida=None, formato_saida='docx', processar_mermaid=True, pandoc_version=None, mermaid_cmd='mmdc', chrome_path=None, puppeteer_paths=None):
+    """Converte um arquivo Markdown para Word"""
+    pasta_temp_imagens = None
+    
     try:
         # Verificar se arquivo existe
         if not os.path.exists(arquivo_md):
@@ -292,23 +398,21 @@ def converter_arquivo(arquivo_md, arquivo_saida=None, formato_saida='docx', proc
         
         print(f"\n📝 Convertendo: {arquivo_md} → {arquivo_saida}")
         
-        # Criar pasta temporária para processamento
-        pasta_temp = tempfile.mkdtemp(prefix='md_to_word_')
-        print(f"📁 Pasta temporária: {pasta_temp}")
-        
         arquivo_para_converter = arquivo_md
         
         try:
             # Processar diagramas Mermaid se solicitado
             if processar_mermaid:
                 print("🎨 Processando diagramas Mermaid...")
-                arquivo_para_converter = processar_mermaid_no_markdown(arquivo_md, pasta_temp, mermaid_cmd)
+                arquivo_para_converter, pasta_temp_imagens = processar_mermaid_no_markdown(
+                    arquivo_md, mermaid_cmd, chrome_path, puppeteer_paths
+                )
             
             # Configurar argumentos do Pandoc
             args_extra = [
-                '--standalone',  # Documento completo
-                '--toc',         # Índice automático
-                '--toc-depth=3', # Profundidade do índice
+                '--standalone',
+                '--toc',
+                '--toc-depth=3',
             ]
             
             # Adicionar highlight style compatível
@@ -339,45 +443,47 @@ def converter_arquivo(arquivo_md, arquivo_saida=None, formato_saida='docx', proc
                 print("❌ Arquivo de saída não foi criado")
                 return False
             
-        finally:
-            # Limpar pasta temporária
+        except Exception as e:
+            print(f"❌ Erro na conversão: {str(e)}")
+            
+            # Tentar conversão mais simples em caso de erro
             try:
-                shutil.rmtree(pasta_temp)
-                print("🧹 Pasta temporária removida")
-            except Exception as e:
-                print(f"⚠️  Erro ao remover pasta temporária: {e}")
+                print("🔄 Tentando conversão simplificada...")
+                
+                args_simples = ['--standalone']
+                
+                pypandoc.convert_file(
+                    arquivo_md,
+                    formato_saida,
+                    outputfile=arquivo_saida,
+                    extra_args=args_simples
+                )
+                
+                if os.path.exists(arquivo_saida):
+                    print(f"✅ Conversão simplificada concluída: {arquivo_saida}")
+                    return True
+                else:
+                    print("❌ Conversão simplificada também falhou")
+                    return False
+                
+            except Exception as e2:
+                print(f"❌ Erro na conversão simplificada: {str(e2)}")
+                return False
         
     except Exception as e:
-        print(f"❌ Erro na conversão: {str(e)}")
-        
-        # Tentar conversão mais simples em caso de erro
-        try:
-            print("🔄 Tentando conversão simplificada...")
-            
-            args_simples = ['--standalone']
-            
-            pypandoc.convert_file(
-                arquivo_md,
-                formato_saida,
-                outputfile=arquivo_saida,
-                extra_args=args_simples
-            )
-            
-            if os.path.exists(arquivo_saida):
-                print(f"✅ Conversão simplificada concluída: {arquivo_saida}")
-                return True
-            else:
-                print("❌ Conversão simplificada também falhou")
-                return False
-            
-        except Exception as e2:
-            print(f"❌ Erro na conversão simplificada: {str(e2)}")
-            return False
+        print(f"❌ Erro geral: {str(e)}")
+        return False
+    finally:
+        # Limpar pasta temporária de imagens
+        if pasta_temp_imagens and os.path.exists(pasta_temp_imagens):
+            try:
+                shutil.rmtree(pasta_temp_imagens)
+                print("🧹 Pasta temporária de imagens removida")
+            except Exception as e:
+                print(f"⚠️  Não foi possível remover pasta temporária: {e}")
 
-def converter_pasta(pasta_origem, pasta_destino=None, processar_mermaid=True, pandoc_version=None, mermaid_cmd='mmdc'):
-    """
-    Converte todos os arquivos .md de uma pasta
-    """
+def converter_pasta(pasta_origem, pasta_destino=None, processar_mermaid=True, pandoc_version=None, mermaid_cmd='mmdc', chrome_path=None, puppeteer_paths=None):
+    """Converte todos os arquivos .md de uma pasta"""
     if not os.path.exists(pasta_origem):
         print(f"❌ Pasta não encontrada: {pasta_origem}")
         return
@@ -402,7 +508,7 @@ def converter_pasta(pasta_origem, pasta_destino=None, processar_mermaid=True, pa
         if pasta_destino:
             arquivo_saida = os.path.join(pasta_destino, f"{arquivo.stem}.docx")
         
-        if converter_arquivo(str(arquivo), arquivo_saida, 'docx', processar_mermaid, pandoc_version, mermaid_cmd):
+        if converter_arquivo(str(arquivo), arquivo_saida, 'docx', processar_mermaid, pandoc_version, mermaid_cmd, chrome_path, puppeteer_paths):
             sucessos += 1
     
     print(f"\n🎉 Conversão concluída: {sucessos}/{len(arquivos_md)} arquivos convertidos")
@@ -500,6 +606,35 @@ sequenceDiagram
     print("💡 O exemplo inclui diagramas Mermaid que serão convertidos em imagens!")
     print("🔧 Execute: python md_to_word.py exemplo.md")
 
+def resolver_problema_chrome():
+    """Função para resolver automaticamente o problema do Chrome"""
+    print("🔧 Iniciando resolução automática do problema do Chrome...")
+    
+    # Verificar configuração atual
+    _, _, _, _, chrome_ok, chrome_path, puppeteer_paths = verificar_dependencias()
+    
+    if chrome_ok:
+        print(f"✅ Chrome já está disponível: {chrome_path}")
+    
+    # Tentar instalar Chrome via Puppeteer
+    print("1. Instalando Chrome via Puppeteer...")
+    if instalar_chrome_puppeteer():
+        print("✅ Problema do Chrome resolvido!")
+        return True
+    
+    # Sugerir instalação manual
+    print("2. Instalação manual do Chrome/Chromium...")
+    print("\nPara resolver permanentemente, instale o Chrome ou Chromium:")
+    print("\nUbuntu/Debian:")
+    print("  sudo apt update")
+    print("  sudo apt install chromium-browser")
+    print("\nOu para Google Chrome:")
+    print("  wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -")
+    print("  echo 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main' | sudo tee /etc/apt/sources.list.d/google-chrome.list")
+    print("  sudo apt update && sudo apt install google-chrome-stable")
+    
+    return False
+
 def main():
     """Função principal do script"""
     parser = argparse.ArgumentParser(
@@ -514,16 +649,12 @@ Exemplos de uso:
   python md_to_word.py -d origem/ -o destino/
   python md_to_word.py --exemplo
   python md_to_word.py --verificar
+  python md_to_word.py --resolver-chrome
 
 Dependências necessárias:
   pip install pypandoc
   npm install -g @mermaid-js/mermaid-cli
-
-Para resolver problemas:
-  1. Certifique-se que Node.js está instalado
-  2. Instale o Mermaid CLI globalmente
-  3. Reinicie o terminal após a instalação
-  4. Use --verificar para diagnosticar problemas
+  npx puppeteer browsers install chrome
         """
     )
     
@@ -533,22 +664,35 @@ Para resolver problemas:
     parser.add_argument('--sem-mermaid', action='store_true', help='Desabilitar processamento Mermaid')
     parser.add_argument('--exemplo', action='store_true', help='Criar arquivo de exemplo')
     parser.add_argument('--verificar', action='store_true', help='Verificar dependências e sair')
-    parser.add_argument('--versao', action='version', version='%(prog)s 2.1 - Versão Corrigida')
+    parser.add_argument('--resolver-chrome', action='store_true', help='Tentar resolver problema do Chrome automaticamente')
+    parser.add_argument('--versao', action='version', version='%(prog)s 2.5 - Versão corrigida para caminhos de imagens')
     
     args = parser.parse_args()
     
+    # Resolver problema do Chrome se solicitado
+    if args.resolver_chrome:
+        resolver_problema_chrome()
+        return
+    
     # Verificar dependências
-    pandoc_ok, mermaid_ok, pandoc_version, mermaid_cmd = verificar_dependencias()
+    pandoc_ok, mermaid_ok, pandoc_version, mermaid_cmd, chrome_ok, chrome_path, puppeteer_paths = verificar_dependencias()
     
     if args.verificar:
         print("\n" + "="*50)
         print("RESUMO DA VERIFICAÇÃO:")
-        print("="*50)
         print(f"Pandoc: {'✅ OK' if pandoc_ok else '❌ ERRO'}")
         print(f"Mermaid CLI: {'✅ OK' if mermaid_ok else '❌ ERRO'}")
+        print(f"Chrome/Chromium: {'✅ OK' if chrome_ok else '❌ ERRO'}")
         if mermaid_cmd:
             print(f"Comando Mermaid: {mermaid_cmd}")
+        if chrome_path:
+            print(f"Caminho Chrome: {chrome_path}")
         print("="*50)
+        
+        if mermaid_ok and not chrome_ok:
+            print("\n💡 SOLUÇÃO RECOMENDADA:")
+            print("Execute: python md_to_word.py --resolver-chrome")
+        
         return
     
     if not pandoc_ok:
@@ -560,7 +704,7 @@ Para resolver problemas:
     
     if not mermaid_ok and not args.sem_mermaid:
         print("\n⚠️  AVISO: Diagramas Mermaid serão mantidos como código")
-        print("   Para converter diagramas em imagens, instale o Mermaid CLI")
+        print("   Para converter diagramas Mermaid em imagens, instale o Mermaid CLI e o Chrome/Chromium, ou use a opção --sem-mermaid para desabilitar o processamento de diagramas.")
         print("   Use --verificar para ver instruções detalhadas")
         processar_mermaid = False
     
