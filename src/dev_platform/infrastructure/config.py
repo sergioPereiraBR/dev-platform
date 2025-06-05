@@ -73,7 +73,8 @@ class Configuration:
             except Exception as e:
                 warnings.warn(f"Erro ao carregar o arquivo de configuração {full_config_file_path}: {e}")
         else:
-            print(f"INFO: Arquivo de configuração {full_config_file_path} não encontrado. Usando apenas variáveis de ambiente e padrões.")
+            # print(f"INFO: Arquivo de configuração {full_config_file_path} não encontrado. Usando apenas variáveis de ambiente e padrões.")
+            pass
 
     def _validate_production_config(self):
         """Valida que a DATABASE_URL esteja presente em ambiente de produção."""

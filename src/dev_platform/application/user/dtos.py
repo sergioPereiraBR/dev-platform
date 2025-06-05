@@ -23,11 +23,17 @@ class UserCreateDTO(BaseModel):
     name: StrictStr
     email: StrictStr
 
+    @validator('name')
     def validate_name(cls, v):
+        if not v or len(v) == 0:
+            raise ValueError("Precisar ser um nome, o campo não pode ficar vazio")
         return v.strip()
-    
+
+    @validator('email')    
     def validate_email(cls, v):
         # Validação básica antes de criar Value Object
+        if not v or len(v) == 0:
+            raise ValueError("Precisar ser um e-mail")
         return v.lower().strip()
     
 class UserUpdateDTO(BaseModel):

@@ -1,5 +1,4 @@
 # src/dev_platform/domain/user/value_objects.py
-
 from dataclasses import dataclass
 import re
 
