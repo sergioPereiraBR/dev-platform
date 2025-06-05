@@ -37,7 +37,7 @@ class PDFGenerator:
             topMargin=72,
             bottomMargin=18
         )
-        self.story = []
+        self.story:list = []
         self.styles = getSampleStyleSheet()
         self._setup_styles()
         
@@ -211,7 +211,7 @@ class PDFGenerator:
         """Divide conteúdo grande em chunks menores para melhor processamento"""
         chunks = []
         lines = content.split('\n')
-        current_chunk = []
+        current_chunk: list = []
         current_size = 0
         
         for line in lines:

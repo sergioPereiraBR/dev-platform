@@ -138,6 +138,7 @@ class SQLUserRepository(UserRepository):
                 error=e,
                 email=email
             )
+        return None
     
     async def find_all(self) -> List[User]:
         """Find all users in the database."""
@@ -160,6 +161,8 @@ class SQLUserRepository(UserRepository):
                 operation="find_all_users",
                 error=e
             )
+
+        return [] # Nota de teste: Retornar None aqui pode ser problemático, pois o método deve retornar uma lista vazia se não houver usuários. Considere retornar uma lista vazia em vez de None.
     
     async def find_by_id(self, user_id: int) -> Optional[User]:
         """Find a user by ID."""
@@ -185,11 +188,16 @@ class SQLUserRepository(UserRepository):
                 error=e,
                 user_id=user_id
             )
+        
+        return None
 
     async def find_by_ids(self, user_ids: List[int]) -> List[User]:
         result = await self._session.execute(
             select(UserModel).where(UserModel.id.in_(user_ids))
         )
+        if result is None:
+            return [] # Nota de teste: Verificar resultado
+
         return [self._convert_to_domain_user(u) for u in result.scalars().all()]
     
     async def delete(self, user_id: int) -> bool:
@@ -225,7 +233,8 @@ class SQLUserRepository(UserRepository):
                 operation="delete_user",
                 error=e,
                 user_id=user_id
-            )
+            ) # Nota de teste: Retornar False se a exclusão falhar, o que é mais intuitivo do que retornar None.
+        return False
     
     async def find_by_name_contains(self, name_part: str) -> List[User]:
         """Find users whose name contains the given string."""
@@ -252,8 +261,10 @@ class SQLUserRepository(UserRepository):
                 error=e,
                 name_part=name_part
             )
+        
+        return []
     
-    async def count(self) -> int:
+    async def count(self) -> int: # Nota 
         """Count total number of users."""
         try:
             result = await self._session.execute(
@@ -273,7 +284,8 @@ class SQLUserRepository(UserRepository):
                 error=e
             )
 
-
+        return 0 # Nota de teste: Retornar 0 se a contagem falhar, o que é mais intuitivo do que retornar None.
+    
 class RepositoryExceptionHandler:
     """Utility class for handling repository exceptions consistently."""
     

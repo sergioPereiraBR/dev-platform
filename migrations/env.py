@@ -99,7 +99,7 @@ def run_migrations_online() -> None:
     """
     # config.url já está definido pelo get_database_url_from_project_config() acima
     connectable = engine_from_config(
-        config.get_section_arg(config.config_ini_section),
+        CONFIG.get_section_arg(config.config_ini_section),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

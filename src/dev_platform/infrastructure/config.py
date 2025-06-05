@@ -66,9 +66,10 @@ class Configuration:
         if os.path.exists(full_config_file_path):
             try:
                 with open(full_config_file_path, 'r') as f:
+                    print(f"INFO: Abrindo arquivo de configuração {full_config_file_path}")
                     environment_config = json.load(f)
                     self._config.update(environment_config)
-                    # print(f"INFO: Carregado arquivo de configuração {full_config_file_path}")
+                    print(f"INFO: Carregado arquivo de configuração {full_config_file_path}")
             except Exception as e:
                 warnings.warn(f"Erro ao carregar o arquivo de configuração {full_config_file_path}: {e}")
         else:

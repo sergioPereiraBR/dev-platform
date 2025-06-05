@@ -30,6 +30,7 @@ taskipy = "^1.14.1"
 reportlab = "^4.4.1"
 chardet = "^5.2.0"
 pypandoc = "^1.15"
+mypy = "^1.16.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.6.1"

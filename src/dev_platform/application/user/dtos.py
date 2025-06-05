@@ -1,11 +1,11 @@
 # src/dev_platform/application/user/dtos.py
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, validate_arguments, StrictStr
 
 
 class UserDTO(BaseModel):
     id: str
-    name: str
-    email: str
+    name: StrictStr
+    email: StrictStr
 
     @classmethod
     def from_entity(cls, entity):
@@ -20,31 +20,23 @@ class UserDTO(BaseModel):
         return User.create(name=self.name, email=self.email)
 
 class UserCreateDTO(BaseModel):
-    name: str
-    email: str
+    name: StrictStr
+    email: StrictStr
 
-    @validator('name')
     def validate_name(cls, v):
-        if not v or len(v.strip()) < 3:
-            raise ValueError('Name must be at least 3 characters')
         return v.strip()
     
-    @validator('email')
     def validate_email(cls, v):
         # Validação básica antes de criar Value Object
         return v.lower().strip()
     
 class UserUpdateDTO(BaseModel):
-    name: str
-    email: str
+    name: StrictStr
+    email: StrictStr
 
-    @validator('name')
     def validate_name(cls, v):
-        if not v or len(v.strip()) < 3:
-            raise ValueError('Name must be at least 3 characters')
         return v.strip()
-    
-    @validator('email')
+
     def validate_email(cls, v):
         # Validação básica antes de criar Value Object
         return v.lower().strip()

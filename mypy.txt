@@ -1,0 +1,99 @@
+src\dev_platform\infrastructure\composition_root.py:4: error: Cannot find implementation or library stub for module named "application.user.use_cases"  [import-not-found]
+src\dev_platform\infrastructure\composition_root.py:11: error: Cannot find implementation or library stub for module named "infrastructure.database.unit_of_work"  [import-not-found]
+src\dev_platform\infrastructure\composition_root.py:12: error: Cannot find implementation or library stub for module named "infrastructure.logging.structured_logger"  [import-not-found]
+src\dev_platform\infrastructure\composition_root.py:13: error: Cannot find implementation or library stub for module named "domain.user.services"  [import-not-found]
+src\dev_platform\infrastructure\composition_root.py:18: error: Cannot find implementation or library stub for module named "infrastructure.config"  [import-not-found]
+src\dev_platform\infrastructure\composition_root.py:88: error: "CompositionRoot" has no attribute "CONFIG"  [attr-defined]
+src\dev_platform\domain\user\entities.py:4: error: Cannot find implementation or library stub for module named "domain.user.value_objects"  [import-not-found]
+src\dev_platform\application\user\use_cases.py:3: error: Cannot find implementation or library stub for module named "application.user.ports"  [import-not-found]
+src\dev_platform\application\user\use_cases.py:4: error: Cannot find implementation or library stub for module named "application.user.dtos"  [import-not-found]
+src\dev_platform\application\user\use_cases.py:5: error: Cannot find implementation or library stub for module named "domain.user.entities"  [import-not-found]
+src\dev_platform\application\user\use_cases.py:6: error: Cannot find implementation or library stub for module named "domain.user.services"  [import-not-found]
+src\dev_platform\application\user\use_cases.py:7: error: Cannot find implementation or library stub for module named "domain.user.exceptions"  [import-not-found]
+src\dev_platform\application\user\ports.py:4: error: Cannot find implementation or library stub for module named "domain.user.entities"  [import-not-found]
+src\dev_platform\domain\user\services.py:6: error: Cannot find implementation or library stub for module named "domain.user.entities"  [import-not-found]
+src\dev_platform\domain\user\services.py:7: error: Cannot find implementation or library stub for module named "domain.user.exceptions"  [import-not-found]
+src\dev_platform\domain\user\services.py:22: error: Incompatible default for argument "exclude_user_id" (default has type "None", argument has type "int")  [assignment]
+src\dev_platform\domain\user\services.py:22: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
+src\dev_platform\domain\user\services.py:22: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
+src\dev_platform\domain\user\services.py:188: error: Incompatible default for argument "validation_rules" (default has type "None", argument has type "list[ValidationRule]")  [assignment]
+src\dev_platform\domain\user\services.py:188: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
+src\dev_platform\domain\user\services.py:188: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
+src\dev_platform\domain\user\services.py:301: error: Incompatible default for argument "domain_whitelist" (default has type "None", argument has type "list[str]")  [assignment]
+src\dev_platform\domain\user\services.py:301: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
+src\dev_platform\domain\user\services.py:301: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
+src\dev_platform\domain\user\services.py:355: error: Incompatible default for argument "allowed_domains" (default has type "None", argument has type "list[str]")  [assignment]
+src\dev_platform\domain\user\services.py:355: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
+src\dev_platform\domain\user\services.py:355: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
+src\dev_platform\domain\user\exceptions.py:10: error: Incompatible default for argument "original_exception" (default has type "None", argument has type "Exception")  [assignment]
+src\dev_platform\domain\user\exceptions.py:10: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
+src\dev_platform\domain\user\exceptions.py:10: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
+src\dev_platform\domain\user\exceptions.py:19: error: Incompatible default for argument "original_exception" (default has type "None", argument has type "Exception")  [assignment]
+src\dev_platform\domain\user\exceptions.py:19: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
+src\dev_platform\domain\user\exceptions.py:19: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
+src\dev_platform\domain\user\exceptions.py:31: error: Incompatible default for argument "original_exception" (default has type "None", argument has type "Exception")  [assignment]
+src\dev_platform\domain\user\exceptions.py:31: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
+src\dev_platform\domain\user\exceptions.py:31: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
+src\dev_platform\domain\user\exceptions.py:50: error: Incompatible default for argument "original_exception" (default has type "None", argument has type "Exception")  [assignment]
+src\dev_platform\domain\user\exceptions.py:50: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
+src\dev_platform\domain\user\exceptions.py:50: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
+src\dev_platform\domain\user\exceptions.py:82: error: Incompatible default for argument "original_exception" (default has type "None", argument has type "Exception")  [assignment]
+src\dev_platform\domain\user\exceptions.py:82: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
+src\dev_platform\domain\user\exceptions.py:82: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
+src\dev_platform\domain\user\exceptions.py:96: error: Incompatible default for argument "original_exception" (default has type "None", argument has type "Exception")  [assignment]
+src\dev_platform\domain\user\exceptions.py:96: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
+src\dev_platform\domain\user\exceptions.py:96: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
+src\dev_platform\domain\user\exceptions.py:109: error: Incompatible default for argument "original_exception" (default has type "None", argument has type "Exception")  [assignment]
+src\dev_platform\domain\user\exceptions.py:109: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
+src\dev_platform\domain\user\exceptions.py:109: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
+src\dev_platform\domain\user\exceptions.py:136: error: Incompatible default for argument "error_code" (default has type "None", argument has type "str")  [assignment]
+src\dev_platform\domain\user\exceptions.py:136: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
+src\dev_platform\domain\user\exceptions.py:136: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
+src\dev_platform\domain\user\exceptions.py:136: error: Incompatible default for argument "details" (default has type "None", argument has type "dict[str, Any]")  [assignment]
+scripts\tools\pdf_generator.py:13: error: Library stubs not installed for "reportlab.lib.pagesizes"  [import-untyped]
+scripts\tools\pdf_generator.py:13: note: Hint: "python3 -m pip install types-reportlab"
+scripts\tools\pdf_generator.py:13: note: (or run "mypy --install-types" to install all missing stub packages)
+scripts\tools\pdf_generator.py:14: error: Library stubs not installed for "reportlab.platypus"  [import-untyped]
+scripts\tools\pdf_generator.py:15: error: Library stubs not installed for "reportlab.lib.styles"  [import-untyped]
+scripts\tools\pdf_generator.py:16: error: Library stubs not installed for "reportlab.lib.units"  [import-untyped]
+scripts\tools\pdf_generator.py:17: error: Library stubs not installed for "reportlab.lib"  [import-untyped]
+scripts\tools\pdf_generator.py:18: error: Library stubs not installed for "reportlab.pdfgen"  [import-untyped]
+scripts\tools\pdf_generator.py:19: error: Library stubs not installed for "reportlab.lib.enums"  [import-untyped]
+scripts\tools\pdf_generator.py:20: error: Library stubs not installed for "reportlab.pdfbase"  [import-untyped]
+scripts\tools\pdf_generator.py:21: error: Library stubs not installed for "reportlab.pdfbase.ttfonts"  [import-untyped]
+scripts\tools\pdf_generator.py:40: error: Need type annotation for "story" (hint: "story: list[<type>] = ...")  [var-annotated]
+scripts\tools\pdf_generator.py:214: error: Need type annotation for "current_chunk" (hint: "current_chunk: list[<type>] = ...")  [var-annotated]
+scripts\tools\md_to_word.py:18: error: Skipping analyzing "pypandoc": module is installed, but missing library stubs or py.typed marker  [import-untyped]
+scripts\tools\md_to_word.py:18: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#missing-imports
+src\dev_platform\infrastructure\config.py:7: error: Cannot find implementation or library stub for module named "domain.user.exceptions"  [import-not-found]
+src\dev_platform\infrastructure\config.py:11: error: Name "ConfigurationException" already defined (possibly by an import)  [no-redef]
+src\dev_platform\application\user\dtos.py:19: error: Cannot find implementation or library stub for module named "domain.user.entities"  [import-not-found]
+src\dev_platform\interface\cli\user_commands.py:5: error: Cannot find implementation or library stub for module named "application.user.dtos"  [import-not-found]
+src\dev_platform\interface\cli\user_commands.py:6: error: Cannot find implementation or library stub for module named "infrastructure.composition_root"  [import-not-found]
+src\dev_platform\interface\cli\user_commands.py:7: error: Cannot find implementation or library stub for module named "infrastructure.database.unit_of_work"  [import-not-found]
+src\dev_platform\interface\cli\user_commands.py:8: error: Cannot find implementation or library stub for module named "infrastructure.logging.structured_logger"  [import-not-found]
+src\dev_platform\infrastructure\logging\structured_logger.py:7: error: Cannot find implementation or library stub for module named "infrastructure.config"  [import-not-found]
+src\dev_platform\infrastructure\logging\structured_logger.py:8: error: Cannot find implementation or library stub for module named "application.user.ports"  [import-not-found]
+src\dev_platform\infrastructure\database\unit_of_work.py:7: error: Cannot find implementation or library stub for module named "infrastructure.config"  [import-not-found]
+src\dev_platform\infrastructure\database\unit_of_work.py:8: error: Cannot find implementation or library stub for module named "application.user.ports"  [import-not-found]
+src\dev_platform\infrastructure\database\unit_of_work.py:9: error: Cannot find implementation or library stub for module named "infrastructure.database.session"  [import-not-found]
+src\dev_platform\infrastructure\database\unit_of_work.py:10: error: Cannot find implementation or library stub for module named "infrastructure.database.repositories"  [import-not-found]
+src\dev_platform\infrastructure\database\unit_of_work.py:45: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\dev_platform\infrastructure\database\unit_of_work.py:46: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\dev_platform\infrastructure\database\session.py:7: error: Cannot find implementation or library stub for module named "infrastructure.config"  [import-not-found]
+src\dev_platform\infrastructure\database\repositories.py:7: error: Cannot find implementation or library stub for module named "application.user.ports"  [import-not-found]
+src\dev_platform\infrastructure\database\repositories.py:8: error: Cannot find implementation or library stub for module named "domain.user.entities"  [import-not-found]
+src\dev_platform\infrastructure\database\repositories.py:9: error: Cannot find implementation or library stub for module named "domain.user.value_objects"  [import-not-found]
+src\dev_platform\infrastructure\database\repositories.py:10: error: Cannot find implementation or library stub for module named "domain.user.exceptions"  [import-not-found]
+src\dev_platform\infrastructure\database\repositories.py:15: error: Cannot find implementation or library stub for module named "infrastructure.database.models"  [import-not-found]
+src\dev_platform\infrastructure\database\repositories.py:117: error: Missing return statement  [return]
+src\dev_platform\infrastructure\database\repositories.py:142: error: Missing return statement  [return]
+src\dev_platform\infrastructure\database\repositories.py:164: error: Missing return statement  [return]
+src\dev_platform\infrastructure\database\repositories.py:195: error: Missing return statement  [return]
+src\dev_platform\infrastructure\database\repositories.py:230: error: Missing return statement  [return]
+src\dev_platform\infrastructure\database\repositories.py:256: error: Missing return statement  [return]
+src\dev_platform\infrastructure\database\models.py:8: error: Variable "src.dev_platform.infrastructure.database.models.Base" is not valid as a type  [valid-type]
+src\dev_platform\infrastructure\database\models.py:8: note: See https://mypy.readthedocs.io/en/stable/common_issues.html#variables-vs-type-aliases
+src\dev_platform\infrastructure\database\models.py:8: error: Invalid base class "Base"  [misc]
+migrations\env.py:102: error: "Config" has no attribute "get_section_arg"; maybe "get_section"?  [attr-defined]
+Found 68 errors in 17 files (checked 21 source files)

@@ -11,10 +11,11 @@
         "enableFeatureY": true
         },
         "database": {
-        "host": "prod-db.devplatform.com",
-        "port": 5432,
-        "username": "prod_user",
-        "password": "secure_password"
+            "databasename": "user_management",
+            "host": "127.0.0.1",
+            "port": 3306,
+            "username": "root",
+            "password": "Malato%2301"
         }
     }
 ]

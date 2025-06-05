@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any
 class ApplicationException(Exception):
     """Base exception for application layer errors."""
     
-    def __init__(self, message: str, original_exception: Exception = None):
+    def __init__(self, message: str, original_exception: Optional[Exception] = None):
         self.message = message
         self.original_exception = original_exception
         self.timestamp = datetime.now()
@@ -16,7 +16,7 @@ class ApplicationException(Exception):
 class UseCaseException(ApplicationException):
     """Raised when a use case execution fails."""
     
-    def __init__(self, use_case_name: str, reason: str, original_exception: Exception = None):
+    def __init__(self, use_case_name: str, reason: str, original_exception: Optional[Exception] = None):
         self.use_case_name = use_case_name
         self.reason = reason
         super().__init__(
@@ -28,7 +28,7 @@ class UseCaseException(ApplicationException):
 class InfrastructureException(Exception):
     """Base exception for infrastructure layer errors."""
     
-    def __init__(self, message: str, component: str, original_exception: Exception = None):
+    def __init__(self, message: str, component: str, original_exception: Optional[Exception] = None):
         self.message = message
         self.component = component
         self.original_exception = original_exception
@@ -47,7 +47,7 @@ class InfrastructureException(Exception):
 class DatabaseException(InfrastructureException):
     """Raised when database operations fail."""
     
-    def __init__(self, operation: str, reason: str, original_exception: Exception = None):
+    def __init__(self, operation: str, reason: str, original_exception: Optional[Exception] = None):
         self.operation = operation
         self.reason = reason
         super().__init__(
@@ -79,7 +79,7 @@ class ConfigurationException(InfrastructureException):
 class CacheException(InfrastructureException):
     """Raised when cache operations fail."""
     
-    def __init__(self, operation: str, key: str, reason: str, original_exception: Exception = None):
+    def __init__(self, operation: str, key: str, reason: str, original_exception: Optional[Exception] = None):
         self.operation = operation
         self.key = key
         self.reason = reason
@@ -93,7 +93,7 @@ class CacheException(InfrastructureException):
 class RepositoryException(InfrastructureException):
     """Base exception for repository layer errors."""
     
-    def __init__(self, repository_name: str, operation: str, reason: str, original_exception: Exception = None):
+    def __init__(self, repository_name: str, operation: str, reason: str, original_exception: Optional[Exception] = None):
         self.repository_name = repository_name
         self.operation = operation
         self.reason = reason
@@ -106,7 +106,7 @@ class RepositoryException(InfrastructureException):
 class DataIntegrityException(RepositoryException):
     """Raised when data integrity constraints are violated."""
     
-    def __init__(self, constraint_name: str, details: str, original_exception: Exception = None):
+    def __init__(self, constraint_name: str, details: str, original_exception: Optional[Exception] = None):
         self.constraint_name = constraint_name
         self.details = details
         super().__init__(
@@ -133,7 +133,7 @@ class DataCorruptionException(RepositoryException):
 class DomainException(Exception):
     """Base exception for all domain-related errors."""
     
-    def __init__(self, message: str, error_code: str = None, details: Dict[str, Any] = None):
+    def __init__(self, message: str, error_code: str = None, details: Optional[Dict[str, Any]] = None):
         self.message = message
         self.error_code = error_code or self.__class__.__name__
         self.details = details or {}

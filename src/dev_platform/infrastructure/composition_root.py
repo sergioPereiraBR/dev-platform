@@ -85,7 +85,7 @@ class CompositionRoot:
         Create UserDomainService with configuration-based rules.
         """
         # Get configuration for validation rules
-        validation_config = self.CONFIG.get('validation', {})
+        validation_config = CONFIG.get('validation', {})
         
         return self.domain_service_factory.create_user_domain_service(
             user_repository=user_repository,

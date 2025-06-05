@@ -19,7 +19,7 @@ class UserUniquenessService:
     def __init__(self, user_repository):
         self._repository = user_repository
     
-    async def ensure_email_is_unique(self, email: str, exclude_user_id: int = None) -> None:
+    async def ensure_email_is_unique(self, email: str, exclude_user_id: Optional[int] = None) -> None:
         existing_user = await self._repository.find_by_email(email)
         if existing_user and (exclude_user_id is None or existing_user.id != exclude_user_id):
             # from domain.user.exceptions import UserAlreadyExistsException
@@ -185,7 +185,7 @@ class BusinessHoursValidationRule(ValidationRule):
 class UserDomainService:
     """Service for complex user domain validations and business rules."""
     
-    def __init__(self, user_repository, validation_rules: List[ValidationRule] = None):
+    def __init__(self, user_repository, validation_rules: Optional[List] = None):
         self._repository = user_repository
         self._validation_rules = validation_rules or []
         self._setup_default_rules()
@@ -298,7 +298,7 @@ class UserDomainService:
         if validation_errors:
             raise UserValidationException(validation_errors)
     
-    async def validate_business_domain_rules(self, user: User, domain_whitelist: List[str] = None) -> None:
+    async def validate_business_domain_rules(self, user: User, domain_whitelist: Optional[List[str]] = None) -> None:
         """
         Validate business-specific domain rules.
         """
@@ -352,14 +352,14 @@ class DomainServiceFactory:
         self, 
         user_repository, 
         enable_profanity_filter: bool = False,
-        allowed_domains: List[str] = None,
+        allowed_domains: Optional[List[str]] = None,
         business_hours_only: bool = False
     ) -> UserDomainService:
         """Create a UserDomainService with common rule configurations."""
         
-        rules = [
+        rules = ['',
             EmailFormatAdvancedValidationRule(),
-            NameContentValidationRule(),
+            NameContentValidationRule()
         ]
         
         if enable_profanity_filter:
