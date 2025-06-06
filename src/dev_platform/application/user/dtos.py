@@ -1,5 +1,5 @@
 # src/dev_platform/application/user/dtos.py
-from pydantic import BaseModel, validator, validate_arguments, StrictStr
+from pydantic import BaseModel, validator, validate_arguments, StrictStr, ValidationError, ValidationInfo, field_validator
 
 
 class UserDTO(BaseModel):
@@ -23,13 +23,13 @@ class UserCreateDTO(BaseModel):
     name: StrictStr
     email: StrictStr
 
-    @validator('name')
+    @field_validator('name')
     def validate_name(cls, v):
         if not v or len(v) == 0:
             raise ValueError("Precisar ser um nome, o campo não pode ficar vazio")
         return v.strip()
 
-    @validator('email')    
+    @field_validator('email')    
     def validate_email(cls, v):
         # Validação básica antes de criar Value Object
         if not v or len(v) == 0:
@@ -40,9 +40,10 @@ class UserUpdateDTO(BaseModel):
     name: StrictStr
     email: StrictStr
 
+    @field_validator('name')
     def validate_name(cls, v):
         return v.strip()
-
+    
+    @field_validator('email')
     def validate_email(cls, v):
-        # Validação básica antes de criar Value Object
         return v.lower().strip()
