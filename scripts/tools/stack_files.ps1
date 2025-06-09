@@ -17,8 +17,11 @@ if ($TargetPath -eq ".") {
     $TargetPath = Get-Location
 }
 
+# Obtém a data atual no formato desejado
+$DataAtual = Get-Date -Format "yyyyMMdd"
+
 # Cria o caminho completo para a pasta stake_file
-$StakeFolderPath = Join-Path -Path $TargetPath -ChildPath "stake_file"
+$StakeFolderPath = Join-Path -Path $TargetPath -ChildPath "stake_file_$DataAtual"
 
 # Verifica se a pasta stake_file existe, se não, cria
 if (-not (Test-Path -Path $StakeFolderPath -PathType Container)) {

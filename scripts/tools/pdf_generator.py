@@ -9,6 +9,7 @@ import os
 import sys
 from pathlib import Path
 from typing import List, Optional, Set
+from datetime import datetime
 import logging
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import (
@@ -399,12 +400,14 @@ Exemplos de uso:
         """,
     )
 
+    data_hoje = datetime.now().strftime("%Y%m%d")
+
     parser.add_argument("folder", help="Caminho para a pasta contendo os arquivos")
 
     parser.add_argument(
         "-o",
         "--output",
-        default="arquivos_compilados.pdf",
+        default=f"arquivos_compilados_{data_hoje}.pdf",
         help="Nome do arquivo PDF de saída (padrão: arquivos_compilados.pdf)",
     )
 
