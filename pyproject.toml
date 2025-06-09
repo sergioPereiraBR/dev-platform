@@ -10,12 +10,14 @@ readme = "README.md"
 requires-python = ">=3.11,<4.0"
 dependencies = [
     "pymysql (>=1.1.1,<2.0.0)",
-    "sqlalchemy[asyncio] (>=2.0.41,<3.0.0)",
     "aiomysql (>=0.2.0,<0.3.0)",
     "typer (>=0.15.4,<0.16.0)",
     "pydantic (>=2.11.5,<3.0.0)",
     "loguru (>=0.7.3,<0.8.0)",
-    "uuid (>=1.30,<2.0)"
+    "uuid (>=1.30,<2.0)",
+    "alembic (>=1.16.1,<2.0.0)",
+    "sqlalchemy (>=2.0.41,<3.0.0)",
+    "python-dotenv (>=1.1.0,<2.0.0)",
 ]
 
 [tool.poetry]
@@ -24,13 +26,13 @@ packages = [{include = "dev_platform", from = "src"}]
 [tool.poetry.group.dev.dependencies]
 black = "^23.0"
 flake8 = "^6.0"
-alembic = "^1.15.2"
-sqlalchemy = "^2.0.41"
 taskipy = "^1.14.1"
 reportlab = "^4.4.1"
 chardet = "^5.2.0"
 pypandoc = "^1.15"
 mypy = "^1.16.0"
+pytest-asyncio = "^1.0.0"
+types-reportlab = "^4.4.1.20250602"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.6.1"
@@ -56,5 +58,11 @@ docs-serve = "mkdocs:serve"  # Iniciar servidor de documentação local
 docs-build = "mkdocs:build"  # Construir a documentação estática
 
 [tool.taskipy.tasks]
-list = "poetry run python ./src/dev_platform/main.py list-users"
+list = "poetry run python ./src/dev_platform/main.py user list-users"
 clean = '.\\scripts\\tools\\del_folderes.ps1 ".\\src" "__pycache__"'
+stack = '.\\scripts\\tools\\stack_files.ps1 ".\\src" "py"'
+
+[tool.mypy]
+python_version = "3.11"
+plugins = "pydantic.mypy"
+

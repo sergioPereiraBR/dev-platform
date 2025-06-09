@@ -1,21 +1,20 @@
-# src/dev_platform/infrastructure/composition_root.py
+# ./src/dev_platform/infrastructure/composition_root.py
 from typing import List, Optional
-
-from application.user.use_cases import (
-    CreateUserUseCase, 
-    ListUsersUseCase, 
+from dev_platform.application.user.use_cases import (
+    CreateUserUseCase,
+    ListUsersUseCase,
     UpdateUserUseCase,
     GetUserUseCase,
-    DeleteUserUseCase
+    DeleteUserUseCase,
 )
-from infrastructure.database.unit_of_work import SQLUnitOfWork
-from infrastructure.logging.structured_logger import StructuredLogger
-from domain.user.services import (
-    UserDomainService, 
+from dev_platform.infrastructure.database.unit_of_work import SQLUnitOfWork
+from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
+from dev_platform.domain.user.services import (
+    UserDomainService,
     UserAnalyticsService,
-    DomainServiceFactory
+    DomainServiceFactory,
 )
-from infrastructure.config import CONFIG
+from dev_platform.infrastructure.config import CONFIG
 
 
 class CompositionRoot:
@@ -23,7 +22,7 @@ class CompositionRoot:
     Composition root for dependency injection.
     Centralizes the creation and configuration of all application dependencies.
     """
-    
+
     def __init__(self):
         # self._config = config or {}
         self._logger = StructuredLogger()
@@ -35,7 +34,7 @@ class CompositionRoot:
         if self._uow is None:
             self._uow = SQLUnitOfWork()
         return self._uow
-    
+
     @property
     def domain_service_factory(self) -> DomainServiceFactory:
         if self._domain_service_factory is None:
@@ -47,65 +46,60 @@ class CompositionRoot:
         return CreateUserUseCase(
             uow=self.uow,
             user_domain_service=self.domain_service_factory.user_domain_service,
-            logger=self._logger
+            logger=self._logger,
         )
 
     @property
     def list_users_use_case(self) -> ListUsersUseCase:
-        return ListUsersUseCase(
-            uow=self.uow,
-            logger=self._logger
-        )
-    
+        return ListUsersUseCase(uow=self.uow, logger=self._logger)
+
     @property
     def update_user_use_case(self) -> UpdateUserUseCase:
         return UpdateUserUseCase(
             uow=self.uow,
             user_domain_service=self.domain_service_factory.user_domain_service,
-            logger=self._logger
+            logger=self._logger,
         )
 
     @property
     def get_user_use_case(self) -> GetUserUseCase:
-        return GetUserUseCase(
-            uow=self.uow,
-            logger=self._logger
-        )
+        return GetUserUseCase(uow=self.uow, logger=self._logger)
 
     @property
     def delete_user_use_case(self) -> DeleteUserUseCase:
-        return DeleteUserUseCase(
-            uow=self.uow,
-            logger=self._logger
-        )
-    
+        return DeleteUserUseCase(uow=self.uow, logger=self._logger)
+
     # Domain Services
     def user_domain_service(self, user_repository) -> UserDomainService:
         """
         Create UserDomainService with configuration-based rules.
         """
         # Get configuration for validation rules
-        validation_config = CONFIG.get('validation', {})
-        
+        validation_config = CONFIG.get("validation", {})
+
         return self.domain_service_factory.create_user_domain_service(
             user_repository=user_repository,
-            enable_profanity_filter=validation_config.get('enable_profanity_filter', False),
-            allowed_domains=validation_config.get('allowed_domains'),
-            business_hours_only=validation_config.get('business_hours_only', False)
+            enable_profanity_filter=validation_config.get(
+                "enable_profanity_filter", False
+            ),
+            allowed_domains=validation_config.get("allowed_domains"),
+            business_hours_only=validation_config.get("business_hours_only", False),
         )
-    
+
     def user_analytics_service(self, user_repository) -> UserAnalyticsService:
         """Create UserAnalyticsService."""
         return self.domain_service_factory.create_analytics_service(user_repository)
-    
+
     # Utility methods for specific configurations
-    def create_enterprise_user_domain_service(self, user_repository) -> UserDomainService:
+    def create_enterprise_user_domain_service(
+        self, user_repository
+    ) -> UserDomainService:
         """
         Create UserDomainService with enterprise-level validation rules.
         """
         return self.domain_service_factory.create_user_domain_service(
             user_repository=user_repository,
             enable_profanity_filter=True,
-            allowed_domains=['empresa.com', 'company.com'],
-            business_hours_only=True
+            allowed_domains=["empresa.com", "company.com"],
+            business_hours_only=True,
         )

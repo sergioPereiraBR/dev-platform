@@ -1,6 +1,5 @@
 # ./.gitignore
-# NOTA
-# Commit do arquivo poetry.lock permite criar um ambiente determinístico
+
 
 # Ambientes virtuais
 .venv/
@@ -29,7 +28,9 @@ site/
 
 # Poetry
 poetry.lock
-# Descomente a linha acima se NÃO quiser versionar o poetry.lock
+# NOTA:
+# 1 - Descomente a linha acima se NÃO quiser versionar o poetry.lock
+# 2 - Commit do arquivo poetry.lock permite criar um ambiente determinístico
 
 # Arquivos de log
 *.log
@@ -68,6 +69,7 @@ Thumbs.db
 .env.development
 .env.test
 .env.production
+.env*
 
 # Diretórios de mídia/uploads (se aplicável)
 media/

@@ -1,4 +1,4 @@
-# migrations/env.py
+# ./migrations/env.py
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
@@ -17,7 +17,9 @@ import sys
 # O Alembic geralmente é executado da raiz do projeto, então isso é crucial.
 # Descobre o caminho do alembic.ini e navega para a raiz do projeto.
 current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(current_dir, '..', '..')) # Ajuste conforme a profundidade de 'migrations'
+project_root = os.path.abspath(
+    os.path.join(current_dir, "..", "..")
+)  # Ajuste conforme a profundidade de 'migrations'
 sys.path.insert(0, project_root)
 
 # Agora podemos importar a configuração do seu projeto
@@ -38,7 +40,10 @@ if config.config_file_name is not None:
 # from myapp import Base
 # target_metadata = Base.metadata
 # Exemplo: Se você tem um models.py na camada de infraestrutura
-from src.dev_platform.infrastructure.database.models import Base # Ajuste este import para seu modelo base
+from src.dev_platform.infrastructure.database.models import (
+    Base,
+)  # Ajuste este import para seu modelo base
+
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -52,11 +57,16 @@ def get_database_url_from_project_config():
     try:
         # Acesse a URL do banco de dados diretamente da sua instância CONFIG
         # Isso garante que a URL seja carregada dos arquivos .env corretamente.
-        return CONFIG.sync_database_url # Use sync_database_url para Alembic, pois ele é síncrono.
+        return (
+            CONFIG.sync_database_url
+        )  # Use sync_database_url para Alembic, pois ele é síncrono.
     except ConfigurationException as e:
-        print(f"ERRO: Não foi possível obter DATABASE_URL da configuração do projeto: {e}")
+        print(
+            f"ERRO: Não foi possível obter DATABASE_URL da configuração do projeto: {e}"
+        )
         # Isso é um erro fatal para o Alembic, então re-lançar ou sair.
         sys.exit(1)
+
 
 # Pega a URL do banco de dados da sua configuração customizada
 database_url = get_database_url_from_project_config()
@@ -65,6 +75,7 @@ database_url = get_database_url_from_project_config()
 config.set_main_option("sqlalchemy.url", database_url)
 
 # --- Fim da Modificação ---
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -89,6 +100,7 @@ def run_migrations_offline() -> None:
     with context.begin_transaction():
         context.run_migrations()
 
+
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode.
 
@@ -104,12 +116,11 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()
