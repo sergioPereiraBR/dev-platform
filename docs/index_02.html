@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infográfico: Análise da Arquitetura DEV Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #DFF6FF;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .flow-arrow {
+            position: relative;
+            width: 100%;
+            height: 2px;
+            background-color: #256D85;
+            margin: 1.5rem 0;
+        }
+        .flow-arrow::after {
+            content: '';
+            position: absolute;
+            right: -1px;
+            top: -5px;
+            width: 0;
+            height: 0;
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-left: 8px solid #256D85;
+        }
+        .flow-arrow.invalid {
+            background-color: #ef4444;
+        }
+        .flow-arrow.invalid::after {
+            border-left-color: #ef4444;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-black text-[#00449E] mb-2">Análise Arquitetural: Projeto DEV Platform</h1>
+            <p class="text-lg text-[#256D85]">Uma análise profunda sobre a saúde do código, aderência a padrões e oportunidades de aprimoramento contínuo.</p>
+        </header>
+
+        <section id="overview" class="mb-16">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="md:col-span-1 bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center justify-center text-center">
+                    <h2 class="text-2xl font-bold text-[#00449E] mb-2">Maturidade do Código</h2>
+                    <p class="text-8xl font-black text-[#256D85]">8.5<span class="text-4xl">/10</span></p>
+                    <p class="mt-4 text-[#256D85]">Base sólida com forte aderência a boas práticas, mas com pontos estratégicos para evolução que podem elevar a qualidade e robustez do sistema.</p>
+                </div>
+                <div class="md:col-span-2 bg-white rounded-2xl shadow-lg p-6">
+                    <h2 class="text-2xl font-bold text-[#00449E] mb-4">Aderência aos Princípios SOLID</h2>
+                    <p class="text-[#256D85] mb-4">O projeto demonstra uma excelente aplicação dos princípios SOLID, fundamentais para a criação de um software flexível e manutenível. O gráfico de radar abaixo quantifica a aderência de cada princípio, destacando a forte aplicação da maioria e uma oportunidade de melhoria no Princípio Aberto/Fechado (OCP) devido a configurações fixas no código.</p>
+                    <div class="chart-container h-[300px] md:h-[350px]">
+                        <canvas id="solidChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="clean-architecture" class="mb-16">
+            <h2 class="text-3xl font-bold text-center text-[#00449E] mb-8">Análise da Arquitetura Limpa</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-[#00449E] mb-4">Estrutura de Camadas</h3>
+                    <p class="text-[#256D85] mb-6">O projeto adota uma estrutura de diretórios que espelha fielmente as camadas da Arquitetura Limpa. Essa separação clara de responsabilidades é um ponto forte, isolando o domínio de detalhes de infraestrutura e interface, o que facilita a manutenção e a evolução do sistema.</p>
+                    <div class="chart-container h-[300px]">
+                        <canvas id="layersChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-[#00449E] mb-4">Fluxo de Dependências e Ponto de Melhoria</h3>
+                    <p class="text-[#256D85] mb-6">A regra de dependência, que dita que as camadas internas não devem conhecer as externas, é majoritariamente respeitada. No entanto, foi identificada uma violação crítica que precisa de correção para garantir o total desacoplamento e a pureza do domínio.</p>
+                    <div class="space-y-4">
+                        <div class="bg-[#DFF6FF] border-2 border-dashed border-[#8FE3CF] rounded-lg p-4 text-center">
+                            <p class="font-bold text-[#00449E]">Interface (CLI)</p>
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="bg-[#DFF6FF] border-2 border-dashed border-[#8FE3CF] rounded-lg p-4 text-center">
+                            <p class="font-bold text-[#00449E]">Infraestrutura (BD, Log, etc)</p>
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="bg-[#DFF6FF] border-2 border-dashed border-[#8FE3CF] rounded-lg p-4 text-center">
+                            <p class="font-bold text-[#00449E]">Aplicação (Casos de Uso, DTOs)</p>
+                        </div>
+                        <div class="flow-arrow invalid"></div>
+                         <div class="bg-red-100 border-2 border-dashed border-red-400 rounded-lg p-4 text-center">
+                            <p class="font-bold text-red-700">Domínio (Entidades, Regras de Negócio)</p>
+                            <p class="text-sm text-red-600 mt-2"><b>Violação:</b> O Serviço de Domínio (`services.py`) importa uma interface (`UserRepository`) da camada de Aplicação, quebrando a regra de dependência.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="ddd" class="mb-16">
+            <h2 class="text-3xl font-bold text-center text-[#00449E] mb-8">Análise do Domain-Driven Design (DDD)</h2>
+            <p class="text-center max-w-3xl mx-auto text-[#256D85] mb-8">A aderência aos padrões DDD é um dos maiores trunfos do projeto, resultando em um modelo de negócio rico, expressivo e resiliente a mudanças. A validação de dados segue um fluxo claro e robusto através das camadas.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-[#00449E] mb-4">Componentes do Domínio</h3>
+                    <p class="text-[#256D85] mb-6">O domínio é bem modelado com Entidades, Objetos de Valor (VOs) auto-validáveis e Serviços que encapsulam regras complexas, demonstrando maturidade no design.</p>
+                    <div class="chart-container h-[280px]">
+                        <canvas id="dddComponentsChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-col">
+                     <h3 class="text-xl font-bold text-[#00449E] mb-4">Fluxo de Validação de Dados</h3>
+                     <p class="text-[#256D85] mb-6">O sistema utiliza um "funil de validação" eficaz, onde os dados são progressivamente validados à medida que se aprofundam no sistema, garantindo a integridade.</p>
+                     <div class="flex-grow flex flex-col justify-center space-y-2">
+                        <div class="bg-gray-100 rounded-lg p-3 text-center shadow-sm">
+                            <p class="font-semibold text-gray-700">1. DTO (Validação de Formato)</p>
+                        </div>
+                        <p class="text-center text-2xl text-[#8FE3CF]">▼</p>
+                        <div class="bg-gray-100 rounded-lg p-3 text-center shadow-sm">
+                             <p class="font-semibold text-gray-700">2. Objeto de Valor (Validação de Tipo)</p>
+                        </div>
+                         <p class="text-center text-2xl text-[#8FE3CF]">▼</p>
+                        <div class="bg-gray-100 rounded-lg p-3 text-center shadow-sm">
+                             <p class="font-semibold text-gray-700">3. Serviço de Domínio (Regras de Negócio)</p>
+                        </div>
+                     </div>
+                </div>
+                
+                 <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-[#00449E] mb-4">Recomendação: Externalizar Configurações</h3>
+                    <p class="text-[#256D85] mb-4">Uma melhoria chave é externalizar regras de negócio que hoje estão fixas no código, como a lista de palavras proibidas na `DomainServiceFactory`.</p>
+                     <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
+                      <p class="font-bold">Problema (OCP)</p>
+                      <p>Listas de palavras e regras padrão estão "hardcoded". Mudar essas regras exige uma alteração no código e um novo deploy, violando o Princípio Aberto/Fechado.</p>
+                    </div>
+                     <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mt-4 rounded-md" role="alert">
+                      <p class="font-bold">Solução</p>
+                      <p>Carregar estas regras a partir de arquivos de configuração (`.env` ou `.json`), permitindo que a equipe de negócios ou operações as ajuste sem intervenção do time de desenvolvimento.</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="best-practices" class="mb-16">
+            <h2 class="text-3xl font-bold text-center text-[#00449E] mb-8">Boas Práticas de Programação</h2>
+            <p class="text-center max-w-3xl mx-auto text-[#256D85] mb-8">O projeto demonstra excelência em várias áreas-chave da programação moderna, resultando em um código legível, seguro e performático. As práticas de logging e configuração merecem destaque especial pela sua robustez.</p>
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                 <div class="chart-container h-[400px] w-full max-w-4xl">
+                    <canvas id="practicesChart"></canvas>
+                </div>
+            </div>
+        </section>
+        
+        <section id="recommendations">
+             <h2 class="text-3xl font-bold text-center text-[#00449E] mb-8">Recomendações Estratégicas</h2>
+             <p class="text-center max-w-3xl mx-auto text-[#256D85] mb-8">Para elevar o projeto ao próximo nível de excelência, as seguintes ações são recomendadas. Elas abordam os pontos de melhoria identificados e fortalecem ainda mais a base arquitetural para o futuro.</p>
+             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <div class="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-shadow duration-300">
+                    <div class="flex items-center mb-3">
+                        <span class="text-3xl mr-4">1️⃣</span>
+                        <h3 class="text-xl font-bold text-[#00449E]">Corrigir Inversão de Dependência</h3>
+                    </div>
+                    <p class="text-[#256D85]">Mover a definição da interface `UserRepository` da camada de Aplicação para a de Domínio. Isso garante 100% de independência do núcleo de negócio e melhora a testabilidade.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-shadow duration-300">
+                     <div class="flex items-center mb-3">
+                        <span class="text-3xl mr-4">2️⃣</span>
+                        <h3 class="text-xl font-bold text-[#00449E]">Externalizar Regras de Negócio</h3>
+                    </div>
+                    <p class="text-[#256D85]">Remover a lógica de negócio "hardcoded" (ex: palavras proibidas) da `DomainServiceFactory` e carregá-la dinamicamente a partir de arquivos de configuração.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-shadow duration-300">
+                     <div class="flex items-center mb-3">
+                        <span class="text-3xl mr-4">3️⃣</span>
+                        <h3 class="text-xl font-bold text-[#00449E]">Modernizar a CLI Assíncrona</h3>
+                    </div>
+                    <p class="text-[#256D85]">Substituir o gerenciamento manual do loop de eventos (`run_until_complete`) por `asyncio.run()` nos comandos da CLI. Isso simplifica o código e o torna mais robusto e moderno.</p>
+                </div>
+
+             </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center p-6 mt-12 text-[#256D85]">
+        <p>&copy; 2025 Análise de Qualidade de Software. Infográfico gerado com base na avaliação do projeto DEV Platform.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            
+            const palette = {
+                blueDark: '#00449E',
+                blueMid: '#256D85',
+                cyanLight: '#8FE3CF',
+                blueLightest: '#DFF6FF',
+                accentRed: '#ef4444',
+                accentGreen: '#22c55e',
+                accentGray: '#6b7280'
+            };
+
+            const tooltipTitleCallback = (tooltipItems) => {
+                const item = tooltipItems[0];
+                let label = item.chart.data.labels[item.dataIndex];
+                if (Array.isArray(label)) {
+                    return label.join(' ');
+                } else {
+                    return label;
+                }
+            };
+            
+            const commonChartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: palette.blueMid,
+                            font: {
+                                family: 'Inter',
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: tooltipTitleCallback
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: palette.blueMid, font: { family: 'Inter' } },
+                        grid: { color: 'rgba(37, 109, 133, 0.1)' }
+                    },
+                    y: {
+                        ticks: { color: palette.blueMid, font: { family: 'Inter' } },
+                        grid: { color: 'rgba(37, 109, 133, 0.1)' }
+                    }
+                }
+            };
+            
+            const wrapLabel = (label, maxLength = 16) => {
+                if (typeof label !== 'string' || label.length <= maxLength) {
+                    return label;
+                }
+                const words = label.split(' ');
+                const lines = [];
+                let currentLine = '';
+                for (const word of words) {
+                    if ((currentLine + ' ' + word).length > maxLength && currentLine.length > 0) {
+                        lines.push(currentLine);
+                        currentLine = word;
+                    } else {
+                        currentLine = (currentLine ? currentLine + ' ' : '') + word;
+                    }
+                }
+                lines.push(currentLine);
+                return lines;
+            };
+
+            const solidChartCtx = document.getElementById('solidChart');
+            if(solidChartCtx) {
+                new Chart(solidChartCtx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['Responsabilidade Única (SRP)', 'Aberto/Fechado (OCP)', 'Substituição de Liskov (LSP)', 'Segregação de Interface (ISP)', 'Inversão de Dependência (DIP)'],
+                        datasets: [{
+                            label: 'Nível de Aderência',
+                            data: [5, 3, 5, 5, 4.5],
+                            backgroundColor: 'rgba(37, 109, 133, 0.2)',
+                            borderColor: palette.blueMid,
+                            pointBackgroundColor: palette.blueMid,
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: palette.blueMid
+                        }]
+                    },
+                    options: {
+                        ...commonChartOptions,
+                        scales: {
+                            r: {
+                                angleLines: { color: 'rgba(37, 109, 133, 0.2)' },
+                                grid: { color: 'rgba(37, 109, 133, 0.2)' },
+                                pointLabels: { 
+                                    color: palette.blueDark,
+                                    font: { size: 12, family: 'Inter', weight: '600' }
+                                 },
+                                ticks: {
+                                    backdropColor: 'transparent',
+                                    color: palette.blueMid,
+                                    stepSize: 1
+                                },
+                                suggestedMin: 0,
+                                suggestedMax: 5
+                            }
+                        }
+                    }
+                });
+            }
+
+            const layersChartCtx = document.getElementById('layersChart');
+            if (layersChartCtx) {
+                new Chart(layersChartCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Domínio', 'Aplicação', 'Infraestrutura', 'Interface'],
+                        datasets: [{
+                            label: 'Quantidade de Arquivos por Camada',
+                            data: [4, 3, 7, 1],
+                            backgroundColor: [palette.blueDark, palette.blueMid, palette.cyanLight, palette.accentGray],
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: { ...commonChartOptions, indexAxis: 'y', plugins: { legend: { display: false } } }
+                });
+            }
+
+            const dddComponentsChartCtx = document.getElementById('dddComponentsChart');
+            if(dddComponentsChartCtx) {
+                new Chart(dddComponentsChartCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Entidades', 'Objetos de Valor (VOs)', 'Serviços de Domínio', 'Interfaces (Ports)'],
+                        datasets: [{
+                            label: 'Componentes',
+                            data: [1, 2, 2, 3],
+                            backgroundColor: [palette.blueDark, palette.blueMid, palette.cyanLight, '#a7f3d0'],
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: { ...commonChartOptions, scales: {} }
+                });
+            }
+
+            const practicesChartCtx = document.getElementById('practicesChart');
+            if (practicesChartCtx) {
+                 const originalLabels = ['Logging Estruturado e Rastreabilidade', 'Implementação Assíncrona (async/await)', 'Gerenciamento de Configuração e Segurança', 'Legibilidade e Convenções', 'Modularidade e Reusabilidade Geral'];
+                 const wrappedLabels = originalLabels.map(label => wrapLabel(label));
+
+                new Chart(practicesChartCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: wrappedLabels,
+                        datasets: [{
+                            label: 'Nível de Qualidade (de 10)',
+                            data: [9.5, 9.0, 8.5, 9.0, 9.5],
+                            backgroundColor: palette.blueMid,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        ...commonChartOptions,
+                        indexAxis: 'y',
+                        plugins: { legend: { display: false } },
+                         scales: {
+                            x: {
+                                ticks: { color: palette.blueMid, font: { family: 'Inter' } },
+                                grid: { color: 'rgba(37, 109, 133, 0.1)' },
+                                suggestedMax: 10
+                            },
+                            y: {
+                                ticks: { color: palette.blueDark, font: { family: 'Inter', weight: 600 } },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
