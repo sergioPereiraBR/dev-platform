@@ -764,7 +764,6 @@ Dependências necessárias:
         """,
     )
 
-    parser.add_argument("erro", nargs="?", help="Verifique se as dependências estão corretamente instaladas no sistema operacional que estiver usando.")
     parser.add_argument("arquivo", nargs="?", help="Arquivo .md para converter")
     parser.add_argument("-o", "--output", help="Arquivo ou pasta de saída")
     parser.add_argument("-d", "--diretorio", help="Converter todos .md de uma pasta")

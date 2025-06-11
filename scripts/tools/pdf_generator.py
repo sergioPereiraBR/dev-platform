@@ -2,6 +2,7 @@
 """
 PDF Generator CLI - Converte arquivos de uma pasta em um PDF estruturado
 Autor: Script gerado para converter arquivos em PDF com índice e formatação
+Versão: Com suporte a emojis e caracteres Unicode
 """
 
 import argparse
@@ -11,6 +12,8 @@ from pathlib import Path
 from typing import List, Optional, Set
 from datetime import datetime
 import logging
+import re
+import unicodedata
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import (
     SimpleDocTemplate,
@@ -48,10 +51,72 @@ class PDFGenerator:
         )
         self.story: list = []
         self.styles = getSampleStyleSheet()
+        self.unicode_font_available = self._setup_unicode_font()
         self._setup_styles()
+
+    def _setup_unicode_font(self) -> bool:
+        """Configura uma fonte que suporta Unicode/emojis"""
+        try:
+            # Lista de fontes que podem suportar emojis/Unicode
+            possible_fonts = [
+                # Windows
+                "C:/Windows/Fonts/seguiemj.ttf",  # Segoe UI Emoji
+                "C:/Windows/Fonts/NotoColorEmoji.ttf",  # Noto Color Emoji
+                "C:/Windows/Fonts/arial.ttf",  # Arial (fallback)
+                # macOS
+                "/System/Library/Fonts/Apple Color Emoji.ttc",
+                "/Library/Fonts/Arial.ttf",
+                "/System/Library/Fonts/Helvetica.ttc",
+                # Linux
+                "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+                "/usr/share/fonts/TTF/arial.ttf",
+                # Fontes comuns do sistema
+                "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+            ]
+            
+            font_registered = False
+            
+            for font_path in possible_fonts:
+                if os.path.exists(font_path):
+                    try:
+                        if "emoji" in font_path.lower():
+                            # Registra fonte de emoji
+                            pdfmetrics.registerFont(TTFont('UnicodeEmoji', font_path))
+                            logger.info(f"Fonte de emoji registrada: {font_path}")
+                            font_registered = True
+                        else:
+                            # Registra fonte Unicode geral
+                            pdfmetrics.registerFont(TTFont('UnicodeFont', font_path))
+                            logger.info(f"Fonte Unicode registrada: {font_path}")
+                            font_registered = True
+                        break
+                    except Exception as e:
+                        logger.debug(f"Erro ao registrar fonte {font_path}: {e}")
+                        continue
+            
+            if not font_registered:
+                logger.warning("Nenhuma fonte Unicode encontrada. Emojis podem não ser exibidos corretamente.")
+                return False
+            
+            return True
+            
+        except Exception as e:
+            logger.warning(f"Erro ao configurar fonte Unicode: {e}")
+            return False
 
     def _setup_styles(self):
         """Configura os estilos personalizados para o documento"""
+        # Determina qual fonte usar
+        if self.unicode_font_available:
+            content_font = 'UnicodeFont'  # Fonte que suporta Unicode
+            fallback_font = 'Helvetica'   # Fonte de fallback
+        else:
+            content_font = 'Helvetica'    # Fonte padrão do ReportLab
+            fallback_font = 'Courier'     # Fonte monospace padrão
+        
         # Estilo para títulos de seção
         self.styles.add(
             ParagraphStyle(
@@ -61,6 +126,7 @@ class PDFGenerator:
                 spaceAfter=12,
                 textColor=colors.darkblue,
                 alignment=TA_LEFT,
+                fontName=content_font,
             )
         )
 
@@ -73,6 +139,7 @@ class PDFGenerator:
                 spaceAfter=18,
                 alignment=TA_CENTER,
                 textColor=colors.black,
+                fontName=content_font,
             )
         )
 
@@ -84,24 +151,25 @@ class PDFGenerator:
                 fontSize=11,
                 leftIndent=20,
                 spaceAfter=6,
+                fontName=content_font,
             )
         )
 
-        # Estilo para conteúdo de arquivo (monoespaçado)
+        # Estilo para conteúdo de arquivo (preservando formatação)
         self.styles.add(
             ParagraphStyle(
                 name="FileContent",
-                parent=self.styles["Code"],
-                fontName="Courier",
+                parent=self.styles["Normal"],
+                fontName=content_font,  # Usa fonte Unicode em vez de Courier
                 fontSize=9,
                 leftIndent=10,
                 rightIndent=10,
                 spaceAfter=3,
                 spaceBefore=3,
-                leading=11,  # Espaçamento entre linhas um pouco maior que o tamanho da fonte
+                leading=11,
                 preserveLineBreaks=True,
                 alignment=TA_LEFT,
-                wordWrap="LTR",  # Quebra de linha da esquerda para direita
+                wordWrap="LTR",
             )
         )
 
@@ -114,17 +182,21 @@ class PDFGenerator:
                 textColor=colors.grey,
                 spaceAfter=6,
                 leftIndent=10,
+                fontName=content_font,
             )
         )
 
     def add_title_page(self, title: str, folder_path: str):
         """Adiciona página de título ao PDF"""
+        font_name = 'UnicodeFont' if self.unicode_font_available else 'Helvetica'
+        
         title_style = ParagraphStyle(
             name="Title",
             parent=self.styles["Title"],
             fontSize=24,
             spaceAfter=30,
             alignment=TA_CENTER,
+            fontName=font_name,
         )
 
         subtitle_style = ParagraphStyle(
@@ -133,6 +205,7 @@ class PDFGenerator:
             fontSize=12,
             alignment=TA_CENTER,
             textColor=colors.grey,
+            fontName=font_name,
         )
 
         self.story.append(Spacer(1, 2 * inch))
@@ -163,23 +236,7 @@ class PDFGenerator:
         # Título da seção
         section_title = f"{count}. Arquivo: {filename}"
         self.story.append(Paragraph(section_title, self.styles["SectionTitle"]))
-
-        # Informações do arquivo
-        # file_info = f"Caminho: {file_path} | Tamanho: {self._get_file_size(file_path)}"
-        # self.story.append(Paragraph(file_info, self.styles['FileHeader']))
         self.story.append(Spacer(1, 8))
-
-        # Linha separadora
-        # line_data = [['─' * 100]]
-        # line_table = Table(line_data, colWidths=[7*inch])
-        # line_table.setStyle(TableStyle([
-        #     ('TEXTCOLOR', (0, 0), (-1, -1), colors.grey),
-        #     ('FONTNAME', (0, 0), (-1, -1), 'Courier'),
-        #     ('FONTSIZE', (0, 0), (-1, -1), 8),
-        #     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        # ]))
-        # self.story.append(line_table)
-        # self.story.append(Spacer(1, 8))
 
         # Conteúdo do arquivo
         if content.strip():
@@ -214,8 +271,14 @@ class PDFGenerator:
         self.story.append(PageBreak())
 
     def _process_content(self, content: str) -> str:
-        """Processa o conteúdo preservando formatação exata e escapando caracteres especiais"""
-        # Escapa caracteres especiais do HTML/XML
+        """Processa o conteúdo preservando formatação exata e tratando caracteres Unicode"""
+        # Normaliza caracteres Unicode para garantir compatibilidade
+        try:
+            content = unicodedata.normalize('NFC', content)
+        except Exception:
+            pass  # Se falhar, continua com o conteúdo original
+        
+        # Escapa caracteres especiais do HTML/XML, mas preserva emojis
         content = content.replace("&", "&amp;")
         content = content.replace("<", "&lt;")
         content = content.replace(">", "&gt;")
@@ -233,6 +296,7 @@ class PDFGenerator:
                 elif char == "\t":
                     processed_line += "&nbsp;&nbsp;&nbsp;&nbsp;"  # Tab = 4 espaços
                 else:
+                    # Mantém emojis e outros caracteres Unicode como estão
                     processed_line += char
             processed_lines.append(processed_line)
 
@@ -246,7 +310,7 @@ class PDFGenerator:
         current_size = 0
 
         for line in lines:
-            line_size = len(line) + 1  # +1 para a quebra de linha
+            line_size = len(line.encode('utf-8')) + 1  # Usa bytes para medição mais precisa
             if current_size + line_size > chunk_size and current_chunk:
                 chunks.append("\n".join(current_chunk))
                 current_chunk = [line]
@@ -275,8 +339,6 @@ class PDFGenerator:
 
     def _get_current_date(self) -> str:
         """Retorna a data atual formatada"""
-        from datetime import datetime
-
         return datetime.now().strftime("%d/%m/%Y às %H:%M")
 
     def build(self):
@@ -284,6 +346,9 @@ class PDFGenerator:
         try:
             self.doc.build(self.story)
             logger.info(f"PDF gerado com sucesso: {self.output_file}")
+            if not self.unicode_font_available:
+                logger.warning("Aviso: Fonte Unicode não encontrada. Emojis podem não aparecer corretamente.")
+                logger.info("Para melhor suporte a emojis, instale uma fonte como Noto Color Emoji ou Segoe UI Emoji.")
         except Exception as e:
             logger.error(f"Erro ao gerar PDF: {e}")
             raise
@@ -340,13 +405,13 @@ class FileProcessor:
             with open(file_path, "r", encoding="utf-8", errors="strict") as f:
                 return f.read()
         except UnicodeDecodeError:
-            logger.warning(f"Erro UTF-8 em {file_path}. Tentando UTF-8 com ignore...")
+            logger.warning(f"Erro UTF-8 em {file_path}. Tentando UTF-8 com replace...")
             try:
-                # Tenta UTF-8 ignorando caracteres problemáticos
-                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                # Tenta UTF-8 substituindo caracteres problemáticos
+                with open(file_path, "r", encoding="utf-8", errors="replace") as f:
                     content = f.read()
                     logger.warning(
-                        f"Arquivo {file_path} lido com UTF-8 (alguns caracteres ignorados)"
+                        f"Arquivo {file_path} lido com UTF-8 (alguns caracteres substituídos)"
                     )
                     return content
             except Exception:
@@ -388,7 +453,7 @@ def parse_extensions(extensions_str: str) -> Set[str]:
 def main():
     """Função principal do CLI"""
     parser = argparse.ArgumentParser(
-        description="Gera PDF estruturado com conteúdo de arquivos de uma pasta",
+        description="Gera PDF estruturado com conteúdo de arquivos de uma pasta (com suporte a emojis)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Exemplos de uso:
