@@ -2,10 +2,8 @@
 import asyncio
 import click
 from typing import List, Optional
-from dev_platform.application.user.dtos import UserCreateDTO
+from dev_platform.application.user.dtos import UserCreateDTO, UserUpdateDTO, UserDTO
 from dev_platform.infrastructure.composition_root import CompositionRoot
-from dev_platform.infrastructure.database.unit_of_work import SQLUnitOfWork
-from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
 
 
 class UserCommands:
@@ -48,29 +46,38 @@ class UserCommands:
     ) -> str:
         try:
             use_case = self._composition_root.update_user_use_case
-            # CORRIGIDO: Chamar o método .execute()
-            user_dto = use_case.execute(user_id=user_id, name=name, email=email)
-            return f"User {user_id} updated successfully: ID {user_dto.id}, Name: {user_dto.name}, Email: {user_dto.email}"
+            # Recuperar o usuário existente para preencher DTO com dados atuais se não forem fornecidos
+            existing_user = await self._composition_root.get_user_use_case.execute(user_id)
+            # Criar DTO de atualização com dados existentes ou novos
+            update_name = name if name is not None else existing_user.name.value
+            update_email = email if email is not None else existing_user.email.value
+            user_dto = UserUpdateDTO(name=update_name, email=update_email) # Use UserUpdateDTO
+            updated_user_entity = await use_case.execute(user_id=user_id, dto=user_dto) # Passar DTO
+            return f"User {user_id} updated successfully: ID {updated_user_entity.id}, Name: {updated_user_entity.name.value}, Email: {updated_user_entity.email.value}"
         except Exception as e:
             return f"Error updating user: {e}"
 
     async def get_user_async(self, user_id: int) -> str:
         try:
             use_case = self._composition_root.get_user_use_case
-            # CORRIGIDO: Chamar o método .execute()
-            user_dto = use_case.execute(user_id=user_id)
-            return f"User found: ID {user_dto.id}, Name: {user_dto.name.value}, Email: {user_dto.email.value}"
+            user_entity = await use_case.execute(user_id=user_id)
+            if not user_entity:
+                return f"User with ID {user_id} not found."
+            return f"User found: ID {user_entity.id}, Name: {user_entity.name.value}, Email: {user_entity.email.value}"
         except Exception as e:
             return f"Error getting user: {e}"
 
     async def delete_user_async(self, user_id: int) -> str:
         try:
             use_case = self._composition_root.delete_user_use_case
-            # CORRIGIDO: Chamar o método .execute()
-            use_case.execute(user_id=user_id)  # Delete pode não retornar um DTO
-            return f"User {user_id} deleted successfully."
+            success = await use_case.execute(user_id=user_id)
+            if success:
+                return f"User {user_id} deleted successfully."
+            else:
+                return f"User {user_id} could not be deleted (not found or other issue)."
         except Exception as e:
             return f"Error deleting user: {e}"
+
 
 
 # Obtém ou cria um loop de eventos global
