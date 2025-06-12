@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import delete, func
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from dev_platform.application.user.ports import UserRepository
+from dev_platform.domain.user.interfaces import UserRepository
 from dev_platform.domain.user.entities import User
 from dev_platform.domain.user.value_objects import UserName, Email
 from dev_platform.domain.user.exceptions import (

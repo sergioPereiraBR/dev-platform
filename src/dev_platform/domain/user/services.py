@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Set
 import re
 from datetime import datetime, timedelta
+from dev_platform.domain.user.interfaces import UserRepository 
 from dev_platform.domain.user.entities import User
 from dev_platform.domain.user.exceptions import (
     UserAlreadyExistsException,

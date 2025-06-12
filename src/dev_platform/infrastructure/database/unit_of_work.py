@@ -5,7 +5,8 @@ from sqlalchemy.orm import sessionmaker
 
 # Importe a CONFIG global
 from dev_platform.infrastructure.config import CONFIG
-from dev_platform.application.user.ports import UnitOfWork as AbstractUnitOfWork
+from dev_platform.application.user.ports import UnitOfWork
+from dev_platform.domain.user.interfaces import UserRepository # noqa: F401
 from dev_platform.infrastructure.database.session import db_manager
 from dev_platform.infrastructure.database.repositories import SQLUserRepository
 
@@ -41,10 +42,12 @@ async def get_async_session_factory():
     return _async_session_factory
 
 
-class SQLUnitOfWork(AbstractUnitOfWork):
+class SQLUnitOfWork(UnitOfWork):
     def __init__(self):
         self._session: Optional[AsyncSession] = None
-        self.users: Optional[SQLUserRepository] = None
+        self.users: Optional[UserRepository] = None # Usar a interface do domínio
+        #self.users: Optional[SQLUserRepository] = None
+        self.users = SQLUserRepository(self._session) # Inicializa como None
 
     async def __aenter__(self):
         # Usar o gerenciador de sessões
