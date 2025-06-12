@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Set
 import re
 from datetime import datetime, timedelta
+from dev_platform.infrastructure.config import CONFIG
 from dev_platform.domain.user.interfaces import UserRepository 
 from dev_platform.domain.user.entities import User
 from dev_platform.domain.user.exceptions import (
@@ -379,8 +380,15 @@ class DomainServiceFactory:
 
         if enable_profanity_filter:
             # Add common profanity words - in production, load from config/database
-            forbidden_words = ["badword1", "badword2"]  # Replace with actual list
-            rules.append(NameProfanityValidationRule(forbidden_words))
+            # forbidden_words = ["badword1", "badword2"]  # Replace with actual list
+            # rules.append(NameProfanityValidationRule(forbidden_words))
+            # Carregar palavras proibidas da configuração
+            # O.env.production [1] já tem VALIDATION_FORBIDDEN_WORDS como string separada por vírgulas
+            forbidden_words_str = CONFIG.get("validation.forbidden_words", "")
+            forbidden_words = [word.strip() for word in
+            forbidden_words_str.split(',') if word.strip()]
+            if not forbidden_words:
+                print("AVISO: Lista de palavras proibidas vazia na configuração.")
 
         if allowed_domains:
             rules.append(EmailDomainValidationRule(allowed_domains))

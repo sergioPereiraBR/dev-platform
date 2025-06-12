@@ -1,7 +1,7 @@
 # ./src/dev_platform/application/user/use_cases.py
 from typing import List
 from dev_platform.application.user.ports import Logger, UnitOfWork
-from dev_platform.application.user.dtos import UserCreateDTO
+from dev_platform.application.user.dtos import UserCreateDTO, UserUpdateDTO
 from dev_platform.domain.user.entities import User
 from dev_platform.domain.user.services import DomainServiceFactory
 from dev_platform.domain.user.exceptions import (
@@ -122,7 +122,7 @@ class UpdateUserUseCase(BaseUseCase):
         super().__init__(uow, logger)
         self._domain_service_factory = domain_service_factory
 
-    async def execute(self, user_id: int, dto: UserCreateDTO) -> User:
+    async def execute(self, user_id: int, dto: UserUpdateDTO) -> User:
         async with self._uow:
             # Gerar ID de correlação para esta operação
             self._logger.set_correlation_id()
@@ -136,24 +136,14 @@ class UpdateUserUseCase(BaseUseCase):
                 if not existing_user:
                     raise UserNotFoundException(str(user_id))
 
-                # Create updated user entity
-                updated_user = User.create(name=dto.name, email=dto.email)
-                updated_user.id = user_id  # Preserve the ID
+                # Atualizar a entidade existente diretamente com os novos dados do DTO
+                existing_user.update_details(dto.name, dto.email)
+                domain_service = self._domain_service_factory.create_user_domain_service(self._uow.users)
 
-                # Create domain service
-                domain_service = (
-                    self._domain_service_factory.create_user_domain_service(
-                        self._uow.users
-                    )
-                )
-
-                # Validate update
-                await domain_service.validate_user_update(user_id, updated_user)
-
-                self._logger.info("User update validation passed", user_id=user_id)
-
-                # Save updated user
-                saved_user = await self._uow.users.save(updated_user)
+                # Validar a entidade atualizada, incluindo a verificação de unicidade de e-mail se ele mudou
+                await domain_service.validate_user_update(user_id, existing_user)
+                # Salvar a entidade atualizada
+                saved_user = await self._uow.users.save(existing_user)
                 await self._uow.commit()
 
                 self._logger.info(
