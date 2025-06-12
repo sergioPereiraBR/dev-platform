@@ -78,11 +78,8 @@ class UserCommands:
         except Exception as e:
             return f"Error deleting user: {e}"
 
-
-
 # Obtém ou cria um loop de eventos global
 loop = asyncio.get_event_loop()
-
 
 @click.group()
 def cli():
@@ -93,7 +90,6 @@ def cli():
     # Fecha o loop de eventos ao final da execução
     # if not loop.is_closed():
     #     loop.close()
-
 
 # COMANDOS CLICK - CADA UM AGORA GERENCIA SEU PRÓPRIO asyncio.run() E LIMPEZA
 @cli.command()
@@ -110,7 +106,6 @@ def create_user(name: str, email: str):
     # Executa a corrotina no loop de eventos existente
     return loop.run_until_complete(_run_create())
 
-
 @cli.command()
 def list_users():
     """List all users."""
@@ -123,7 +118,6 @@ def list_users():
 
     return loop.run_until_complete(_run_list())
 
-
 @cli.command()
 @click.option("--user-id", type=int, prompt="User ID to update")
 @click.option(
@@ -132,12 +126,14 @@ def list_users():
     default="",
     show_default=False,
 )
+
 @click.option(
     "--email",
     prompt="New user email (leave empty to keep current)",
     default="",
     show_default=False,
 )
+
 def update_user(user_id: int, name: str, email: str):
     """Update an existing user."""
     commands = UserCommands()
@@ -150,7 +146,6 @@ def update_user(user_id: int, name: str, email: str):
 
     return loop.run_until_complete(_run_update())
 
-
 @cli.command()
 @click.option("--user-id", type=int, prompt="User ID to retrieve")
 def get_user(user_id: int):
@@ -162,7 +157,6 @@ def get_user(user_id: int):
         click.echo(result)
 
     return loop.run_until_complete(_run_get())
-
 
 @cli.command()
 @click.option("--user-id", type=int, prompt="User ID to delete")
