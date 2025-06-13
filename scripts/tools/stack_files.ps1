@@ -32,6 +32,36 @@ else {
     Write-Host "Pasta stake_file já existe em: $StakeFolderPath"
 }
 
+# Cria o caminho completo para a pasta stake_header
+$StakeHeaderFolderPath = Join-Path -Path $TargetPath -ChildPath "stake_header_$DataAtual"
+
+# Verifica se a pasta stake_header_file existe, se não, cria
+if (-not (Test-Path -Path $StakeHeaderFolderPath -PathType Container)) {
+    New-Item -Path $StakeHeaderFolderPath -ItemType Directory | Out-Null
+    Write-Host "Pasta stake_header criada em: $StakeHeaderFolderPath"
+}
+else {
+    Write-Host "Pasta stake_header já existe em: $StakeHeaderFolderPath"
+}
+
+# Copia o arquivo para o destino
+Copy-Item -Path "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\.vscode\settings.json" -Destination $StakeHeaderFolderPath
+Copy-Item -Path "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\migrations\env.py" -Destination $StakeHeaderFolderPath
+Copy-Item -Path "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\alembic.ini" -Destination $StakeHeaderFolderPath
+Copy-Item -Path "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\.gitignore" -Destination $StakeHeaderFolderPath
+Copy-Item -Path "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\mypy.ini" -Destination $StakeHeaderFolderPath
+Copy-Item -Path "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\pyproject.toml" -Destination $StakeHeaderFolderPath
+Copy-Item -Path "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\poetry.toml" -Destination $StakeHeaderFolderPath
+Copy-Item -Path "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\README.md" -Destination $StakeHeaderFolderPath
+Copy-Item -Path "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\mkdocs.yml" -Destination $StakeHeaderFolderPath
+Copy-Item -Path "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\config.production.json" -Destination $StakeHeaderFolderPath
+Copy-Item -Path "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\.env" -Destination $StakeHeaderFolderPath
+Copy-Item -Path "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\.env.development" -Destination $StakeHeaderFolderPath
+Copy-Item -Path "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\.env.production" -Destination $StakeHeaderFolderPath
+Copy-Item -Path "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\.env.test" -Destination $StakeHeaderFolderPath
+Copy-Item -Path "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\tree.txt" -Destination $StakeHeaderFolderPath
+
+
 # Função para obter um nome de arquivo único caso já exista
 function Get-UniqueFileName {
     param (

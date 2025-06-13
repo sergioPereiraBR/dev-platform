@@ -1,0 +1,19 @@
+{
+    "name": "dev_platform",
+    "version": "1.0.0",
+    "description": "Production configuration for the development platform",
+    "environment": "production",
+    "apiBaseUrl": "https://api.devplatform.com",
+    "loggingLevel": "error",
+    "features": {
+        "enableFeatureX": false,
+        "enableFeatureY": true
+    },
+    "database": {
+        "databasename": "user_management",
+        "host": "127.0.0.1",
+        "port": 3306,
+        "username": "root",
+        "password": "Malato%2301"
+    }
+}

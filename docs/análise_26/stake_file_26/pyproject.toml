@@ -63,13 +63,11 @@ docs-serve = "mkdocs:serve"  # Iniciar servidor de documentação local
 docs-build = "mkdocs:build"  # Construir a documentação estática
 
 [tool.taskipy.tasks]
-list = "poetry run python ./src/dev_platform/main.py user list-users"
+list = "poetry run python -m ./src/dev_platform/main.py user list-users"
 clean = "pwsh -Command ./scripts/tools/del_folderes.ps1 './src' '__pycache__'"
 stack = "pwsh -Command ./scripts/tools/stack_files.ps1 './src' 'py'"
-files2pdf = "poetry run python ./scripts/tools/pdf_generator.py ./src/stake_file --title \"Arquivos do Projeto DEV Platform\" -v"
-analise_md2word = "poetry run python ./scripts/tools/md_to_word.py ./docs/análise_26.md" # Converte o arquivo Markdown em Word - Melhor no WSL Ubuntu 20.04
-onboarding_md2word = "poetry run python ./scripts/tools/md_to_word.py ./docs/onboarding_26.md" # Converte o arquivo Markdown em Word - Melhor no WSL Ubuntu 20.04
 
 [tool.mypy]
 python_version = "3.11"
 plugins = "pydantic.mypy"
+

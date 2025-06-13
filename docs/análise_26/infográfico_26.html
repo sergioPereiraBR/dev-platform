@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard do Projeto DEV Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* style.css incorporado aqui */
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .dashboard-header {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px 0;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .dashboard-header h1 {
+            margin: 0;
+            font-size: 2.2em;
+        }
+
+        .dashboard-header p {
+            margin: 5px 0 0;
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .dashboard-section {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+            padding: 25px;
+        }
+
+        .dashboard-section h2 {
+            color: #34495e;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+
+        .dashboard-section h2 i {
+            margin-right: 10px;
+            color: #3498db;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .metric-card {
+            background-color: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-card h3 {
+            margin-top: 0;
+            color: #555;
+            font-size: 1.2em;
+        }
+
+        .metric-card .metric-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #3498db;
+            margin: 10px 0;
+        }
+
+        .metric-card .metric-value i {
+            font-size: 0.8em; /* Ajusta o tamanho do ícone ao lado do valor */
+            margin-left: 5px;
+        }
+
+
+        .metric-card .metric-info {
+            font-size: 0.9em;
+            color: #777;
+        }
+
+        .quality-gate-green {
+            background-color: #e6ffe6;
+            border-color: #4CAF50;
+        }
+        .quality-gate-green .metric-value {
+            color: #4CAF50;
+        }
+
+        .quality-gate-red {
+            background-color: #ffe6e6;
+            border-color: #f44336;
+        }
+        .quality-gate-red .metric-value {
+            color: #f44336;
+        }
+
+        .quality-gate-yellow {
+            background-color: #fffbe6;
+            border-color: #ffc107;
+        }
+        .quality-gate-yellow .metric-value {
+            color: #ffc107;
+        }
+
+        .chart-container {
+            background-color: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 25px;
+        }
+
+        .chart-container h3 {
+            margin-top: 0;
+            color: #555;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .architectural-diagram {
+            text-align: center;
+            margin-top: 30px;
+            background-color: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 20px;
+        }
+
+        .architectural-diagram img {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .dashboard-footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+            background-color: #34495e;
+            color: #ecf0f1;
+            font-size: 0.9em;
+        }
+
+        .dashboard-footer i {
+            color: #e74c3c;
+        }
+
+        /* Responsividade Básica */
+        @media (max-width: 768px) {
+            .metrics-grid {
+                grid-template-columns: 1fr; /* Uma coluna em telas menores */
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="dashboard-header">
+        <h1><i class="fas fa-rocket"></i> Dashboard do Projeto DEV Platform</h1>
+        <p>Visão Geral da Saúde, Qualidade e Conformidade Arquitetural</p>
+    </header>
+
+    <main class="dashboard-container">
+
+        <section class="dashboard-section quality-overview">
+            <h2><i class="fas fa-code-branch"></i> Qualidade do Código</h2>
+            <div class="metrics-grid">
+                <div class="metric-card quality-gate-green">
+                    <h3>Quality Gate</h3>
+                    <p class="metric-value">PASS <i class="fas fa-check-circle"></i></p>
+                    <p class="metric-info">Status atual da qualidade do projeto.</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Dívida Técnica</h3>
+                    <p class="metric-value">5 dias <i class="fas fa-clock"></i></p>
+                    <p class="metric-info">Tempo estimado para resolver problemas.</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Bugs</h3>
+                    <p class="metric-value">0 <i class="fas fa-bug"></i></p>
+                    <p class="metric-info">Erros de codificação.</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Vulnerabilidades</h3>
+                    <p class="metric-value">1 <i class="fas fa-shield-alt"></i></p>
+                    <p class="metric-info">Falhas de segurança.</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Code Smells</h3>
+                    <p class="metric-value">15 <i class="fas fa-hand-sparkles"></i></p>
+                    <p class="metric-info">Pontos que podem ser melhorados.</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Duplicação</h3>
+                    <p class="metric-value">3% <i class="fas fa-copy"></i></p>
+                    <p class="metric-info">Código repetido.</p>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>Tendência de Dívida Técnica (últimos 30 dias)</h3>
+                <canvas id="debtTrendChart"></canvas>
+            </div>
+        </section>
+
+        <section class="dashboard-section architectural-compliance">
+            <h2><i class="fas fa-building"></i> Conformidade Arquitetural</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>Violações de Dependência</h3>
+                    <p class="metric-value">2 <i class="fas fa-unlink"></i></p>
+                    <p class="metric-info">Ex: Domínio importando Infraestrutura. <a href="#anexo-a">Saiba mais</a></p>
+                </div>
+                <div class="metric-card">
+                    <h3>Modelo de Domínio Anêmico</h3>
+                    <p class="metric-value">Baixo Risco <i class="fas fa-leaf"></i></p>
+                    <p class="metric-info">Percentual de entidades com comportamento.</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Cobertura de Testes (Domínio)</h3>
+                    <p class="metric-value">92% <i class="fas fa-vial"></i></p>
+                    <p class="metric-info">Cobertura de testes unitários na camada de domínio.</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Cobertura de Testes (Aplicação)</h3>
+                    <p class="metric-value">85% <i class="fas fa-flask"></i></p>
+                    <p class="metric-info">Cobertura de testes unitários na camada de aplicação.</p>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>Violações de Dependência por Camada</h3>
+                <canvas id="dependencyViolationsChart"></canvas>
+            </div>
+            <div class="architectural-diagram">
+                <h3>Diagrama de Contextos Delimitados (C4 Model - Nível 1)</h3>
+                <img src="c4_bounded_contexts.png" alt="Diagrama de Contextos Delimitados" style="max-width: 100%; height: auto;">
+                <p class="metric-info">Para mais detalhes, consulte a documentação arquitetural.</p>
+            </div>
+        </section>
+
+        <section class="dashboard-section solid-practices">
+            <h2><i class="fas fa-cogs"></i> SOLID e Boas Práticas</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>Complexidade Ciclomática Alta</h3>
+                    <p class="metric-value">3 <i class="fas fa-chart-network"></i></p>
+                    <p class="metric-info">Métodos/Funções acima do limiar de complexidade.</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Erros de Tipagem (Mypy)</h3>
+                    <p class="metric-value">0 <i class="fas fa-check"></i></p>
+                    <p class="metric-info">Erros de tipagem estática.</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Violações de Estilo (Linters)</h3>
+                    <p class="metric-value">5 <i class="fas fa-paint-brush"></i></p>
+                    <p class="metric-info">Problemas de formatação/estilo de código.</p>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>Distribuição de Complexidade Ciclomática</h3>
+                <canvas id="complexityDistributionChart"></canvas>
+            </div>
+        </section>
+
+        <section class="dashboard-section ci-cd-health">
+            <h2><i class="fas fa-tools"></i> Saúde do CI/CD e Testes</h2>
+            <div class="metrics-grid">
+                <div class="metric-card quality-gate-green">
+                    <h3>Sucesso do CI/CD</h3>
+                    <p class="metric-value">98% <i class="fas fa-thumbs-up"></i></p>
+                    <p class="metric-info">Taxa de sucesso dos pipelines.</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Tempo Médio de Build</h3>
+                    <p class="metric-value">4 min <i class="fas fa-hourglass-half"></i></p>
+                    <p class="metric-info">Tempo médio de execução do pipeline.</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Testes Falhos</h3>
+                    <p class="metric-value">0 <i class="fas fa-times-circle"></i></p>
+                    <p class="metric-info">Testes que falharam na última execução.</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Cobertura Total de Testes</h3>
+                    <p class="metric-value">88% <i class="fas fa-chart-pie"></i></p>
+                    <p class="metric-info">Cobertura geral de código por testes.</p>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>Tendência de Sucesso do CI/CD (últimos 30 dias)</h3>
+                <canvas id="ciCdSuccessChart"></canvas>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="dashboard-footer">
+        <p>&copy; 2025 DEV Platform. Desenvolvido com <i class="fas fa-heart"></i> e Arquitetura Limpa.</p>
+    </footer>
+
+    <script>
+        // dashboard.js incorporado aqui
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dados de exemplo para os gráficos (em um ambiente real, viriam de uma API)
+
+            // Gráfico: Tendência de Dívida Técnica
+            const debtTrendCtx = document.getElementById('debtTrendChart').getContext('2d');
+            new Chart(debtTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['2025-05-15', '2025-05-20', '2025-05-25', '2025-05-30', '2025-06-05', '2025-06-10'],
+                    datasets: [{
+                        label: 'Dívida Técnica (dias)',
+                        data: [10, 8, 9, 7, 6, 5],
+                        borderColor: '#e67e22',
+                        backgroundColor: 'rgba(230, 126, 34, 0.2)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Dias'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + ' dias';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico: Violações de Dependência por Camada
+            const dependencyViolationsCtx = document.getElementById('dependencyViolationsChart').getContext('2d');
+            new Chart(dependencyViolationsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Infra -> Domínio', 'Domínio -> Aplicação', 'Outras'],
+                    datasets: [{
+                        label: 'Número de Violações',
+                        data: [2, 0, 0], // Ex: 2 violações de Infra para Domínio
+                        backgroundColor: [
+                            'rgba(231, 76, 60, 0.7)', // Vermelho para violação grave
+                            'rgba(46, 204, 113, 0.7)', // Verde para 0 violações
+                            'rgba(52, 152, 219, 0.7)'  // Azul para outras
+                        ],
+                        borderColor: [
+                            'rgba(231, 76, 60, 1)',
+                            'rgba(46, 204, 113, 1)',
+                            'rgba(52, 152, 219, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Número de Violações'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false,
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico: Distribuição de Complexidade Ciclomática (Exemplo: classes/métodos)
+            const complexityDistributionCtx = document.getElementById('complexityDistributionChart').getContext('2d');
+            new Chart(complexityDistributionCtx, {
+                type: 'pie', // Ou 'doughnut'
+                data: {
+                    labels: ['Baixa (1-5)', 'Média (6-10)', 'Alta (11-20)', 'Muito Alta (>20)'],
+                    datasets: [{
+                        label: 'Complexidade Ciclomática',
+                        data: [70, 20, 7, 3], // Percentuais de classes/métodos em cada faixa
+                        backgroundColor: [
+                            'rgba(46, 204, 113, 0.7)', // Verde
+                            'rgba(52, 152, 219, 0.7)', // Azul
+                            'rgba(241, 196, 15, 0.7)', // Amarelo
+                            'rgba(231, 76, 60, 0.7)'  // Vermelho
+                        ],
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico: Tendência de Sucesso do CI/CD
+            const ciCdSuccessChartCtx = document.getElementById('ciCdSuccessChart').getContext('2d');
+            new Chart(ciCdSuccessChartCtx, {
+                type: 'line',
+                data: {
+                    labels: ['2025-05-15', '2025-05-20', '2025-05-25', '2025-05-30', '2025-06-05', '2025-06-10'],
+                    datasets: [{
+                        label: 'Taxa de Sucesso CI/CD (%)',
+                        data: [95, 90, 98, 97, 99, 98],
+                        borderColor: '#2ecc71',
+                        backgroundColor: 'rgba(46, 204, 113, 0.2)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Percentual (%)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

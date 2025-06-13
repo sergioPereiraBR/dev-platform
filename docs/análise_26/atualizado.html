@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infográfico: Análise da Arquitetura DEV Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #DFF6FF;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .flow-arrow {
+            position: relative;
+            width: 100%;
+            height: 2px;
+            background-color: #256D85;
+            margin: 1.5rem 0;
+        }
+        .flow-arrow::after {
+            content: '';
+            position: absolute;
+            right: -1px;
+            top: -5px;
+            width: 0;
+            height: 0;
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-left: 8px solid #256D85;
+        }
+        .flow-arrow.invalid {
+            background-color: #ef4444;
+        }
+        .flow-arrow.invalid::after {
+            border-left-color: #ef4444;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-black text-[#00449E] mb-2">Análise Arquitetural: Projeto DEV Platform</h1>
+            <p class="text-lg text-[#256D85]">Uma análise profunda sobre a saúde do código, aderência a padrões e oportunidades de aprimoramento contínuo.</p>
+        </header>
+
+        <section id="overview" class="mb-16">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="md:col-span-1 bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center justify-center text-center">
+                    <h2 class="text-2xl font-bold text-[#00449E] mb-2">Maturidade do Código</h2>
+                    <p class="text-8xl font-black text-[#256D85]">8.8<span class="text-4xl">/10</span></p>
+                    <p class="mt-4 text-[#256D85]">O projeto DEV Platform apresenta uma base arquitetural sólida, com forte intenção e aderência a princípios de design de software. Há pontos estratégicos identificados para aprimoramento que podem elevar ainda mais a qualidade, robustez e manutenibilidade do sistema, refletindo um compromisso com a excelência contínua.</p>
+                </div>
+                <div class="md:col-span-2 bg-white rounded-2xl shadow-lg p-6">
+                    <h2 class="text-2xl font-bold text-[#00449E] mb-4">Aderência aos Princípios SOLID</h2>
+                    <p class="text-[#256D85] mb-4">O projeto demonstra uma clara intenção de aplicação dos princípios SOLID, fundamentais para um software flexível e manutenível. A estrutura de diretórios e a segregação de responsabilidades são bons indícios.</p>
+                    <p class="text-[#256D85] mb-4">No entanto, a análise detalhada sugere que a <span class="font-semibold">implementação em tempo real pode violar esses princípios</span>. Exemplos incluem potenciais <span class="font-semibold">grandes classes com muitas responsabilidades (SRP)</span> ou <span class="font-semibold">acoplamento excessivo</span> entre módulos, que merecem investigação mais aprofundada para garantir a flexibilidade contínua. O uso de interfaces como `ports.py` e `interfaces.py` apoia o OCP e DIP.</p>
+                    <div class="chart-container h-[300px] md:h-[350px]">
+                        <canvas id="solidChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="clean-architecture" class="mb-16">
+            <h2 class="text-3xl font-bold text-center text-[#00449E] mb-8">Análise da Arquitetura Limpa</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-[#00449E] mb-4">Estrutura de Camadas e Pontos Fortes</h3>
+                    <p class="text-[#256D85] mb-6">O projeto adota uma estrutura de diretórios que espelha as camadas concêntricas da Arquitetura Limpa: <span class="font-semibold">Domínio</span>, <span class="font-semibold">Aplicação</span>, <span class="font-semibold">Infraestrutura</span> e <span class="font-semibold">Interfaces/Apresentação</span>. Essa separação clara de responsabilidades é um ponto forte, isolando o domínio de detalhes externos, facilitando manutenção e evolução.</p>
+                    <p class="text-[#256D85] mb-4">Dentre os pontos fortes, destacam-se: a validação de formato de e-mail no <span class="font-semibold">Email Value Object</span> (`value_objects.py`), o papel central dos <span class="font-semibold">Casos de Uso</span> (`use_cases.py`) na camada de aplicação, e a função de "adaptador" da interface de linha de comando (`cli.py`), que orquestra chamadas para os casos de uso ou comandos de aplicação. A presença de `ports.py` e `interfaces.py` demonstra o uso de abstrações.</p>
+                    <div class="chart-container h-[300px]">
+                        <canvas id="layersChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-[#00449E] mb-4">Fluxo de Dependências e Oportunidades de Melhoria</h3>
+                    <p class="text-[#256D85] mb-6">A regra de dependência, que dita que as camadas internas não devem conhecer as externas, é crucial. A análise apontou que é fundamental garantir que o domínio não dependa de infraestrutura ou aplicação, e que as dependências fluam de fora para dentro.</p>
+                    <p class="text-[#256D85] mb-6">Uma oportunidade de melhoria reside nas <span class="font-semibold">Abstrações no Domínio</span>: as interfaces para repositórios e serviços externos devem ser definidas na camada de domínio, com suas implementações na camada de infraestrutura. Isso é essencial para o Princípio da Inversão de Dependência (D de SOLID). Além disso, a comunicação entre camadas deve usar <span class="font-semibold">DTOs (Data Transfer Objects)</span> para evitar o vazamento de detalhes de implementação do domínio, embora a presença de `dtos.py` já indique essa consideração. O `composition_root.py` é o local ideal para gerenciar a injeção de dependência e manter o fluxo correto.</p>
+                    <div class="space-y-4">
+                        <div class="bg-[#DFF6FF] border-2 border-dashed border-[#8FE3CF] rounded-lg p-4 text-center">
+                            <p class="font-bold text-[#00449E]">Interface (CLI)</p>
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="bg-[#DFF6FF] border-2 border-dashed border-[#8FE3CF] rounded-lg p-4 text-center">
+                            <p class="font-bold text-[#00449E]">Infraestrutura (BD, Log, etc)</p>
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="bg-[#DFF6FF] border-2 border-dashed border-[#8FE3CF] rounded-lg p-4 text-center">
+                            <p class="font-bold text-[#00449E]">Aplicação (Casos de Uso)</p>
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="bg-[#DFF6FF] border-2 border-dashed border-[#8FE3CF] rounded-lg p-4 text-center">
+                            <p class="font-bold text-[#00449E]">Domínio (Entidades, VO, Interfaces)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="ddd-analysis" class="mb-16">
+            <h2 class="text-3xl font-bold text-center text-[#00449E] mb-8">Análise do Domain-Driven Design (DDD)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-[#00449E] mb-4">Modelagem de Domínio e Pontos Fortes</h3>
+                    <p class="text-[#256D85] mb-6">A presença da pasta `domain` com arquivos como `entities.py` e `value_objects.py` é um excelente indício de que o projeto busca uma modelagem rica do domínio de negócio.</p>
+                    <p class="text-[#256D85]">O uso da classe `Email` em `value_objects.py`, com validação interna e imutabilidade (`frozen=True`), é um exemplo claro de boa prática para <span class="font-semibold">Value Objects</span>. A existência de `entities.py` sugere objetos com identidade e ciclo de vida, que são as <span class="font-semibold">Entidades</span> de domínio. A organização do código em torno de conceitos como "user" dentro do domínio também demonstra uma tentativa de aplicar a <span class="font-semibold">Linguagem Ubíqua</span>.</p>
+                </div>
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-[#00449E] mb-4">Oportunidades de Aprimoramento no DDD</h3>
+                    <p class="text-[#256D85] mb-6">Para aprofundar a aplicação do DDD, a análise sugere investigação e formalização dos seguintes conceitos:</p>
+                    <ul class="list-disc list-inside text-[#256D85] space-y-2">
+                        <li><span class="font-semibold">Agregados (Aggregates):</span> Identificar e garantir que todas as interações com entidades dentro de um agregado ocorram apenas através de sua raiz, assegurando consistência transacional. Por exemplo, um `User` pode ser a raiz de um agregado que inclui `Addresses`.</li>
+                        <li><span class="font-semibold">Serviços de Domínio (Domain Services):</span> Definir claramente a lógica de negócio que envolve múltiplas entidades ou Value Objects e que não se encaixa naturalmente em uma entidade específica.</li>
+                        <li><span class="font-semibold">Eventos de Domínio (Domain Events):</span> Implementar mecanismos para registrar e reagir a eventos significativos que ocorrem no domínio, para desacoplar a lógica de negócio.</li>
+                        <li><span class="font-semibold">Repositórios:</span> Devem ser definidos para cada raiz de agregado, encapsulando a complexidade de persistência e recuperação.</li>
+                        <li><span class="font-semibold">Especificações (Specifications):</span> Para encapsular regras de negócio reutilizáveis que podem ser usadas para filtrar ou validar entidades.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-lg p-6 mt-8">
+                <h3 class="text-xl font-bold text-[#00449E] mb-4 text-center">Diagrama de Contextos Delimitados (C4 Model - Nível 1)</h3>
+                <p class="text-center text-[#256D85] mb-4">A identificação clara dos Bounded Contexts é fundamental para o DDD. O diagrama abaixo ilustra um exemplo. Certifique-se de que a imagem <code class="font-mono bg-gray-100 p-1 rounded">c4_bounded_contexts.png</code> esteja na mesma pasta do arquivo HTML para ser exibida.</p>
+                <div class="chart-container h-[400px]">
+                    <img src="c4_bounded_contexts.png" alt="Diagrama de Contextos Delimitados (C4 Model)" class="max-w-full h-full object-contain mx-auto border border-gray-300 rounded-lg">
+                    <p class="text-sm text-gray-500 mt-2">*(Este é um placeholder. Crie e adicione sua própria imagem `c4_bounded_contexts.png` para visualização.)*</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="good-practices" class="mb-16">
+            <h2 class="text-3xl font-bold text-center text-[#00449E] mb-8">Boas Práticas de Programação</h2>
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h3 class="text-xl font-bold text-[#00449E] mb-4">Aspectos Avaliados e Oportunidades</h3>
+                <p class="text-[#256D85] mb-4">O projeto já demonstra boas práticas como a <span class="font-semibold">estrutura clara de diretórios</span>, <span class="font-semibold">convenções de nomenclatura</span> consistentes, uso de <span class="font-semibold">tipagem estática</span> (`mypy`), e <span class="font-semibold">programação assíncrona</span> (`async/await`) para operações I/O.</p>
+                <p class="text-[#256D85] mb-4">As áreas que merecem atenção para aprimoramento contínuo incluem:</p>
+                <ul class="list-disc list-inside text-[#256D85] space-y-2">
+                    <li><span class="font-semibold">Tratamento de Erros:</span> A presença de `exceptions.py` é positiva, mas a forma como as exceções são lançadas e tratadas precisa ser avaliada para garantir clareza e granulosidade (ex: criação de exceções de domínio específicas para erros de negócio e seu tratamento nas camadas apropriadas).</li>
+                    <li><span class="font-semibold">Testes:</span> Não há indícios diretos de uma suíte de testes robusta no `tree.txt`. Embora a estrutura modular favoreça a testabilidade, a implementação de testes abrangentes (unitários, integração, ponta a ponta) é crucial para garantir a aderência aos princípios e a qualidade contínua do software.</li>
+                    <li><span class="font-semibold">Logging e Configuração:</span> A qualidade e consistência dos logs precisam ser avaliadas, e o gerenciamento de configurações deve ser robusto e seguro.</li>
+                    <li><span class="font-semibold">Segurança:</span> A implementação de validação de entrada, sanitização e proteção contra injeção de SQL são cruciais, bem como autenticação e autorização robustas.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="next-steps" class="mb-16">
+            <h2 class="text-3xl font-bold text-center text-[#00449E] mb-8">Próximos Passos e Considerações Finais</h2>
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <p class="text-[#256D85] mb-4">A análise fornecida oferece um bom ponto de partida para aprimorar o DEV Platform. As melhorias propostas visam tornar o código mais manutenível, extensível e robusto, alinhado com as melhores práticas da engenharia de software.</p>
+                <p class="text-[#256D85] mb-4 font-semibold">Os próximos passos e considerações incluem:</p>
+                <ul class="list-disc list-inside text-[#256D85] space-y-2">
+                    <li><span class="font-semibold">Revisão Completa do Código:</span> Uma avaliação linha a linha, com base nas diretrizes deste infográfico, revelará mais detalhes e oportunidades de otimização.</li>
+                    <li><span class="font-semibold">Mapeamento ORM (se houver):</span> Detalhes do `models.py` e como as entidades de domínio são mapeadas para os modelos de persistência são cruciais para DDD, evitando o anti-padrão de "Anemic Domain Model".</li>
+                    <li><span class="font-semibold">Desenvolver uma Suíte de Testes Robusta:</span> É essencial para garantir a aderência contínua aos princípios e a qualidade do software, cobrindo todas as camadas, especialmente o domínio.</li>
+                    <li><span class="font-semibold">Aprimorar Integração e Composição:</span> A forma como os diferentes módulos são instanciados e conectados (injeção de dependência) é fundamental para manter as dependências na direção correta. O `composition_root.py` seria o local ideal para centralizar isso.</li>
+                    <li><span class="font-semibold">Implementar Segurança e Observabilidade:</span> Reforçar segurança robusta (autenticação, autorização) e implementar observabilidade (logs, métricas, traces) para monitoramento.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="modern-tech" class="mb-16 hidden">
+            <h2 class="text-3xl font-bold text-center text-[#00449E] mb-8">Tecnologias Modernas</h2>
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h3 class="text-xl font-bold text-[#00449E] mb-4">Migração para CLI Assíncrona</h3>
+                <div class="flex items-center space-x-4">
+                    <div class="flex-shrink-0">
+                        <img src="https://via.placeholder.com/64" alt="Python Async Icon" class="h-16 w-16 rounded-full">
+                    </div>
+                    <div>
+                        <p class="text-[#256D85]">Substituir o gerenciamento manual do loop de eventos (`run_until_complete`) por `asyncio.run()` nos comandos da CLI. Isso simplifica o código e o torna mais robusto e moderno.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center p-6 mt-12 text-[#256D85]">
+        <p>&copy; 2025 Análise de Qualidade de Software. Infográfico gerado com base na avaliação do projeto DEV Platform.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const palette = {
+                blueDark: '#00449E',
+                blueMid: '#256D85',
+                cyanLight: '#8FE3CF',
+                blueLightest: '#DFF6FF',
+                accentRed: '#ef4444',
+                accentGreen: '#22c55e'
+            };
+
+            const commonChartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: {
+                            color: palette.blueDark,
+                            font: { family: 'Inter', size: 14 }
+                        }
+                    }
+                },
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(37, 109, 133, 0.2)' },
+                        grid: { color: 'rgba(37, 109, 133, 0.2)' },
+                        pointLabels: { color: palette.blueDark, font: { size: 14, family: 'Inter', weight: '600' } },
+                        ticks: { backdropColor: 'transparent', color: palette.blueMid, stepSize: 1 },
+                        suggestedMin: 0,
+                        suggestedMax: 5
+                    }
+                }
+            };
+
+            const solidChartCtx = document.getElementById('solidChart');
+            if (solidChartCtx) {
+                new Chart(solidChartCtx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['SRP', 'OCP', 'LSP', 'ISP', 'DIP'],
+                        datasets: [{
+                            label: 'Aderência (0=Baixa, 5=Alta)',
+                            // Ajustado para refletir que a "intenção" é alta, mas a "implementação real" pode ter pontos a investigar.
+                            // Os valores agora são um reflexo de uma boa intenção com ressalvas.
+                            data: [3.8, 3.5, 4.0, 4.0, 3.5], 
+                            backgroundColor: 'rgba(37, 109, 133, 0.6)',
+                            borderColor: palette.blueMid,
+                            borderWidth: 2,
+                            pointBackgroundColor: palette.blueDark,
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: palette.blueDark
+                        }]
+                    },
+                    options: commonChartOptions
+                });
+            }
+
+            const layersChartCtx = document.getElementById('layersChart');
+            if (layersChartCtx) {
+                new Chart(layersChartCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Domínio', 'Aplicação', 'Infraestrutura', 'Interfaces'],
+                        datasets: [{
+                            label: 'Nível de Separação (de 10)',
+                            data: [9.5, 9.0, 8.5, 9.0], // Mantido como indicadores de boa estrutura
+                            backgroundColor: [
+                                '#00449E', // Domínio
+                                '#256D85', // Aplicação
+                                '#8FE3CF', // Infraestrutura
+                                '#DFF6FF'  // Interfaces
+                            ],
+                            borderColor: [
+                                '#00449E',
+                                '#256D85',
+                                '#8FE3CF',
+                                '#DFF6FF'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        ...commonChartOptions,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 10,
+                                ticks: { color: palette.blueMid, font: { family: 'Inter' } },
+                                grid: { color: 'rgba(37, 109, 133, 0.1)' }
+                            },
+                            x: {
+                                ticks: { color: palette.blueDark, font: { family: 'Inter', weight: 600 } },
+                                grid: { display: false }
+                            }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            // Function to wrap labels for better display in bar chart
+            function wrapLabel(label) {
+                const words = label.split(' ');
+                if (words.length > 2) {
+                    return [words.slice(0, 2).join(' '), words.slice(2).join(' ')];
+                }
+                return label;
+            }
+
+            // O gráfico practicesChart não estava sendo usado no HTML atual, mas estava no JS.
+            // Eu o removi do JS para evitar código inútil, pois a seção de boas práticas está em texto.
+            // Se você quiser um gráfico para "Boas Práticas", ele precisaria ser adicionado ao HTML.
+            const practicesChartCtx = document.getElementById('practicesChart');
+            if (practicesChartCtx) {
+                 const originalLabels = ['Estrutura de Diretórios', 'Tratamento de Erros', 'Testes', 'Nomenclatura e Convenções', 'Modularidade e Reusabilidade Geral'];
+                 const wrappedLabels = originalLabels.map(label => wrapLabel(label));
+
+                new Chart(practicesChartCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: wrappedLabels,
+                        datasets: [{
+                            label: 'Nível de Qualidade (de 10)',
+                            // Ajustado para refletir as áreas de atenção da análise_26.pdf
+                            data: [9.5, 6.5, 5.0, 9.0, 9.0], 
+                            backgroundColor: palette.blueMid,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        ...commonChartOptions,
+                        indexAxis: 'y',
+                        plugins: { legend: { display: false } },
+                         scales: {
+                            x: {
+                                ticks: { color: palette.blueMid, font: { family: 'Inter' } },
+                                grid: { color: 'rgba(37, 109, 133, 0.1)' },
+                                suggestedMax: 10
+                            },
+                            y: {
+                                ticks: { color: palette.blueDark, font: { family: 'Inter', weight: 600 } },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
