@@ -2,17 +2,17 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Set
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from dev_platform.infrastructure.config import CONFIG
-from dev_platform.domain.user.interfaces import UserRepository 
+from dev_platform.domain.user.interfaces import IUserRepository 
 from dev_platform.domain.user.entities import User
 from dev_platform.domain.user.exceptions import (
     UserAlreadyExistsException,
     UserNotFoundException,
     EmailDomainNotAllowedException,
-    UserValidationException,
-    InvalidUserDataException,
+    UserValidationException
 )
+    #InvalidUserDataException,
 
 
 class UserUniquenessService:
@@ -64,6 +64,23 @@ class EmailDomainValidationRule(ValidationRule):
     @property
     def rule_name(self) -> str:
         return "email_domain_validation"
+
+
+class ForbiddenWordsValidationRule(ValidationRule):
+    """Validates that certain forbidden words are not present."""
+
+    def __init__(self, forbidden_words: List[str]):
+        self.forbidden_words = [word.lower() for word in forbidden_words]
+
+    async def validate(self, user: User) -> Optional[str]:
+        for word in self.forbidden_words:
+            if word in user.name.value.lower():
+                return f"Name contains forbidden word: {word}"
+        return None
+
+    @property
+    def rule_name(self) -> str:
+        return "forbidden_words_validation"
 
 
 class NameProfanityValidationRule(ValidationRule):
@@ -369,7 +386,7 @@ class DomainServiceFactory:
 
     def create_user_domain_service(
         self,
-        user_repository,
+        user_repository: IUserRepository,
         enable_profanity_filter: bool = False,
         allowed_domains: Optional[List[str]] = None,
         business_hours_only: bool = False,

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import delete, func
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from dev_platform.domain.user.interfaces import UserRepository
+from dev_platform.domain.user.interfaces import IUserRepository
 from dev_platform.domain.user.entities import User
 from dev_platform.domain.user.value_objects import UserName, Email
 from dev_platform.domain.user.exceptions import (
@@ -15,7 +15,7 @@ from dev_platform.domain.user.exceptions import (
 from dev_platform.infrastructure.database.models import UserModel
 
 
-class SQLUserRepository(UserRepository):
+class SQLUserRepository(IUserRepository):
     def __init__(self, session: AsyncSession):
         self._session = session
 

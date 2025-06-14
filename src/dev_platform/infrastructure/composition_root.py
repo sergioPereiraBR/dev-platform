@@ -18,7 +18,8 @@ from dev_platform.domain.user.services import (
     NameContentValidationRule,
     EmailDomainValidationRule,  # Para exemplo enterprise
     BusinessHoursValidationRule,  # Para exemplo enterprise
-    NameProfanityValidationRule  # Para exemplo enterprise
+    NameProfanityValidationRule,  # Para exemplo enterprise
+    ForbiddenWordsValidationRule  # Importação adicionada
 )
 from dev_platform.infrastructure.config import CONFIG
 
@@ -122,6 +123,7 @@ class CompositionRoot:
 
         # Regras específicas para o caso Enterprise
         enterprise_rules = [
+            ForbiddenWordsValidationRule(forbidden_words),  # Exemplo de palavra proibida específica
             NameProfanityValidationRule(enterprise_forbidden_words),  # Exemplo de palavra proibida específica
             EmailDomainValidationRule(enterprise_allowed_domains),
             BusinessHoursValidationRule(True),

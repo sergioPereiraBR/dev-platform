@@ -2,15 +2,16 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 from dev_platform.domain.user.entities import User
+from dev_platform.domain.user.value_objects import Email
 
 
-class UserRepository(ABC):
+class IUserRepository(ABC):
     @abstractmethod
     async def save(self, user: User) -> User:
         pass
 
     @abstractmethod
-    async def find_by_email(self, email: str) -> Optional[User]:
+    async def find_by_email(self, email: Email) -> Optional[User]:
         pass
     
     @abstractmethod

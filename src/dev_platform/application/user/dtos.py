@@ -17,6 +17,9 @@ class UserDTO(BaseModel):
         )  # Importar aqui para evitar dependência circular
 
         return User.create(name=self.name, email=self.email)
+    
+    class Config:
+        from_attributes = True
 
 
 class UserCreateDTO(BaseModel):
@@ -35,6 +38,9 @@ class UserCreateDTO(BaseModel):
         if not v or len(v) == 0:
             raise ValueError("Precisar ser um e-mail")
         return v.lower().strip()
+    
+    class Config:
+        from_attributes = True
 
 
 class UserUpdateDTO(BaseModel):
@@ -48,3 +54,6 @@ class UserUpdateDTO(BaseModel):
     @field_validator("email")
     def validate_email(cls, v):
         return v.lower().strip()
+    
+    class Config:
+        from_attributes = True

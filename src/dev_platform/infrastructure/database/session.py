@@ -2,7 +2,7 @@
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Optional
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from dev_platform.infrastructure.config import CONFIG
 
@@ -11,10 +11,10 @@ class DatabaseSessionManager:
     """Gerenciador centralizado de sessões de banco de dados."""
 
     def __init__(self):
-        self._async_engine = None
-        self._sync_engine = None
-        self._async_session_factory = None
-        self._sync_session_factory = None
+        self._async_engine: Optional[AsyncSession] = None
+        self._sync_engine: Optional[Session] = None
+        self._async_session_factory: Optional[async_sessionmaker] = None
+        self._sync_session_factory: Optional[sessionmaker] = None
         self._initialize_engines()
 
     def _initialize_engines(self):
@@ -63,7 +63,7 @@ class DatabaseSessionManager:
                 await session.rollback()
                 raise
 
-    def get_sync_session(self):
+    def get_sync_session(self) -> sessionmaker:
         """Obtém uma sessão síncrona (para migrações, etc.)."""
         if not self._sync_session_factory:
             raise RuntimeError("Sync session not available for this database type")
@@ -80,12 +80,12 @@ class DatabaseSessionManager:
             self._sync_engine.dispose()
 
     @property
-    def async_engine(self):
+    def async_engine(self) -> AsyncSession:
         """Propriedade para acessar o engine assíncrono."""
         return self._async_engine
 
     @property
-    def sync_engine(self):
+    def sync_engine(self) -> sessionmaker:
         """Propriedade para acessar o engine síncrono."""
         return self._sync_engine
 

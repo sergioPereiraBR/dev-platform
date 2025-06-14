@@ -32,7 +32,7 @@ class UserCommands:
             for user in users:
                 # CORRIGIDO: Acessar .value dos value objects
                 result.append(
-                    f"ID: {user.id}, Name: {user.name.value}, Email: {user.email.value}"
+                    f"ID: {user.id}, Name: {user.name}, Email: {user.email}"
                 )
             return result
         except Exception as e:

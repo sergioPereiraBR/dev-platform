@@ -1,13 +1,13 @@
 # src/dev_platform/infrastructure/logging/structured_logger.py
-from typing import Dict, Any, Optional
+from typing import Optional
 import os
 from uuid import uuid4
 from loguru import logger
 from dev_platform.infrastructure.config import CONFIG
-from dev_platform.application.user.ports import Logger as LoggerPort
+from dev_platform.application.ports.logger import ILogger
 
 
-class StructuredLogger(LoggerPort):
+class StructuredLogger(ILogger):
     """Logger estruturado usando Loguru com suporte a níveis dinâmicos e correlação de logs."""
 
     def __init__(self, name: str = "DEV Platform"):

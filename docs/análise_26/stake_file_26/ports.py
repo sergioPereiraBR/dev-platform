@@ -2,11 +2,11 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 from dev_platform.domain.user.entities import User
-from dev_platform.domain.user.interfaces import UserRepository
+from dev_platform.domain.user.interfaces import IUserRepository
 
 
 class UnitOfWork(ABC):
-    users: UserRepository
+    users: IUserRepository
 
     @abstractmethod
     async def __aenter__(self):

@@ -1,0 +1,104 @@
+./tree3.txt
+# Directory structure for the DEV Platform project
+dev_platform
+|   .env
+|   .env.development
+|   .env.production
+|   .env.test
+|   .gitignore
+|   alembic.ini
+|   config.production.json
+|   mkdocs.yml
+|   mypy.ini
+|   mypy.txt
+|   poetry.lock
+|   poetry.toml
+|   pyproject.toml
+|   README.md
+|   sys.stdout
+|   tree.txt
+|   tree3.txt
+|
++---.venv             
+|                   
++---docs
+|
++---logs
+|       app.log
+|       app_.log
+|       app____.log
+|       DEV Platform_2025-06-11.log
+|       DEV Platform_2025-06-12.log
+|       
++---migrations
+|   |   env.py
+|   |   README
+|   |   script.py.mako
+|   |   
+|   \---versions
+|
++---scripts
+|   +---log
+|   |       amostra_log.pdf
+|   |       conceito.pdf
+|   |       
+|   +---requisitos_log
+|   |       DEV Platform_2025-06-01.log
+|   |       DEV Platform_2025-06-02.log
+|   |       DEV Platform_2025-06-03.log
+|   |       DEV Platform_2025-06-05.log
+|   |       DEV Platform_2025-06-06.log
+|   |       DEV Platform_2025-06-07.log
+|   |       DEV Platform_2025-06-08.log
+|   |       DEV Platform_2025-06-09.log
+|   |       
+|   \---tools
+|           cria_pastas.ps1
+|           cria_pastas_arquivo.ps1
+|           del_folderes.ps1
+|           log_analyzer_mvp.py
+|           md_to_word.py
+|           pdf_generator.py
+|           stack_files.ps1
+|           tree.ps1
+|           
++---src
+|   \---dev_platform
+|       |   main.py
+|       |   
+|       +---application
+|       |   \---user
+|       |           dtos.py
+|       |           ports.py
+|       |           use_cases.py
+|       |               
+|       +---domain
+|       |   |   ports.py
+|       |   |   
+|       |   \---user
+|       |           entities.py
+|       |           exceptions.py
+|       |           interfaces.py
+|       |           services.py
+|       |           value_objects.py
+|       |               
+|       +---infrastructure
+|       |   |   composition_root.py
+|       |   |   config.py
+|       |   |   
+|       |   +---database
+|       |   |       models.py
+|       |   |       repositories.py
+|       |   |       session.py
+|       |   |       unit_of_work.py
+|       |   |           
+|       |   +---logging
+|       |           structured_logger.py
+|       |              
+|       \---interface
+|           \---cli
+|                  user_commands.py
+|                       
+\---tests
+        test_db.py
+        
