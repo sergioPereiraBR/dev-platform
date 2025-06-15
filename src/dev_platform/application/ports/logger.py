@@ -5,6 +5,7 @@ from typing import Optional
 
 class ILogger(ABC):
     """Interface for a structured logger."""
+
     @abstractmethod
     def set_correlation_id(self, correlation_id: Optional[str] = None):
         """Set a correlation ID for tracking logs across requests."""

@@ -12,7 +12,7 @@ from dev_platform.domain.user.exceptions import (
     EmailDomainNotAllowedException,
     UserValidationException
 )
-    #InvalidUserDataException,
+
 
 
 class UserUniquenessService:
@@ -67,7 +67,23 @@ class EmailDomainValidationRule(ValidationRule):
 
 
 class ForbiddenWordsValidationRule(ValidationRule):
-    """Validates that certain forbidden words are not present."""
+    """
+    Valida se o nome do usuário contém palavras específicas proibidas.
+
+    Esta regra é utilizada para bloquear nomes que contenham termos definidos explicitamente
+    como proibidos pela aplicação, podendo ser nomes de marcas, palavras ofensivas específicas,
+    nomes reservados, etc. A lista de palavras proibidas é fornecida na inicialização da regra.
+
+    Exemplo de uso:
+        rule = ForbiddenWordsValidationRule(forbidden_words=["admin", "root", "empresa"])
+        erro = await rule.validate(user)
+        # Retorna mensagem se o nome contiver alguma dessas palavras.
+
+    Diferença para NameProfanityValidationRule:
+        - Esta regra é genérica e pode ser usada para qualquer lista de palavras proibidas,
+          não necessariamente palavrões.
+        - Útil para bloquear nomes institucionais, marcas, ou palavras sensíveis específicas.
+    """
 
     def __init__(self, forbidden_words: List[str]):
         self.forbidden_words = [word.lower() for word in forbidden_words]
@@ -84,7 +100,22 @@ class ForbiddenWordsValidationRule(ValidationRule):
 
 
 class NameProfanityValidationRule(ValidationRule):
-    """Validates that name doesn't contain profanity."""
+    """
+    Valida se o nome do usuário contém palavrões ou termos ofensivos.
+
+    Esta regra é especializada para filtrar nomes que contenham palavrões, xingamentos
+    ou termos considerados ofensivos, geralmente baseando-se em uma lista de palavras
+    de baixo calão. A lista de palavrões é fornecida na inicialização da regra.
+
+    Exemplo de uso:
+        rule = NameProfanityValidationRule(forbidden_words=["palavrão1", "palavrão2"])
+        erro = await rule.validate(user)
+        # Retorna mensagem se o nome contiver algum palavrão.
+
+    Diferença para ForbiddenWordsValidationRule:
+        - Esta regra é voltada especificamente para filtragem de linguagem imprópria.
+        - Útil para garantir que nomes de usuários não contenham ofensas ou termos inapropriados.
+    """
 
     def __init__(self, forbidden_words: List[str]):
         self.forbidden_words = [word.lower() for word in forbidden_words]
@@ -217,7 +248,7 @@ class BusinessHoursValidationRule(ValidationRule):
 class UserDomainService:
     """Service for complex user domain validations and business rules."""
 
-    def __init__(self, user_repository, validation_rules: Optional[List] = None):
+    def __init__(self, user_repository, validation_rules: Optional[List[ValidationRule]] = None):
         self._repository = user_repository
         self._validation_rules = validation_rules or []
         self._setup_default_rules()
@@ -379,10 +410,33 @@ class UserAnalyticsService:
 
 # Factory for creating domain services with common configurations
 class DomainServiceFactory:
-    """Factory for creating domain services with common configurations."""
+    """Factory for creating domain services with common configurations.
+    This allows for easy instantiation of services with shared rules and configurations.
+    
+    Usage:
+    factory = DomainServiceFactory()
+    user_service = factory.create_user_domain_service(user_repository, enable_profanity_filter=True, allowed_domains=["example.com", "test.com"])
+    This factory can be extended to create other domain services with similar patterns.
 
-    def __init__(self):
-        pass  # Permite instanciação
+    Note: This is a simplified example. In a real application, you might want to use dependency injection frameworks or more complex factories.
+
+    Usage
+    to create a UserDomainService with common validation rules and configurations.
+    This factory allows you to create domain services with shared configurations, such as enabling profanity filters, setting allowed email domains, and applying business hours validation.
+    This is useful for maintaining consistency across different parts of the application that require user domain services.
+    
+    Example:
+    factory = DomainServiceFactory()
+    user_service = factory.create_user_domain_service(
+        user_repository,
+        enable_profanity_filter=True,
+        allowed_domains=["example.com", "test.com"],
+        business_hours_only=True
+    )
+    """
+
+    def __init__(self, user_repository: IUserRepository = None):
+        self.user_repository: Optional[IUserRepository] = user_repository
 
     def create_user_domain_service(
         self,
@@ -393,19 +447,14 @@ class DomainServiceFactory:
     ) -> UserDomainService:
         """Create a UserDomainService with common rule configurations."""
 
-        rules = ["", EmailFormatAdvancedValidationRule(), NameContentValidationRule()]
+        rules = [EmailFormatAdvancedValidationRule(), NameContentValidationRule()]
 
         if enable_profanity_filter:
-            # Add common profanity words - in production, load from config/database
-            # forbidden_words = ["badword1", "badword2"]  # Replace with actual list
-            # rules.append(NameProfanityValidationRule(forbidden_words))
-            # Carregar palavras proibidas da configuração
-            # O.env.production [1] já tem VALIDATION_FORBIDDEN_WORDS como string separada por vírgulas
             forbidden_words_str = CONFIG.get("validation.forbidden_words", "")
-            forbidden_words = [word.strip() for word in
-            forbidden_words_str.split(',') if word.strip()]
-            if not forbidden_words:
-                print("AVISO: Lista de palavras proibidas vazia na configuração.")
+            forbidden_words = [word.strip() for word in forbidden_words_str.split(',') if word.strip()]
+            if forbidden_words:
+                rules.append(NameProfanityValidationRule(forbidden_words))
+            # else: log ou warning opcional
 
         if allowed_domains:
             rules.append(EmailDomainValidationRule(allowed_domains))

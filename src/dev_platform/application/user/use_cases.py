@@ -61,7 +61,7 @@ class CreateUserUseCase(BaseUseCase):
                 # Create domain service with repository access
                 domain_service = (
                     self._domain_service_factory.create_user_domain_service(
-                        self._uow.users
+                        self._uow.user_repository
                     )
                 )
 
@@ -71,7 +71,7 @@ class CreateUserUseCase(BaseUseCase):
                 self._logger.info("User validation passed", email=dto.email)
 
                 # Save user
-                saved_user = await self._uow.users.save(user)
+                saved_user = await self._uow.user_repository.save(user)
                 await self._uow.commit()
 
                 self._logger.info(
@@ -118,8 +118,8 @@ class ListUsersUseCase(BaseUseCase):
         async with self._uow:
             try:
                 self._logger.info("Starting user listing")
-                users = await self._uow.users.find_all()
-                
+                users = await self._uow.user_repository.find_all()
+
                 self._logger.info("Users retrieved successfully", count=len(users))
                 users_dto = [self.fet_dto(user) for user in users]  
                 return users_dto
@@ -151,19 +151,19 @@ class UpdateUserUseCase(BaseUseCase):
 
             try:
                 # Check if user exists
-                existing_user = await self._uow.users.find_by_id(user_id)
+                existing_user = await self._uow.user_repository.find_by_id(user_id)
                 if not existing_user:
                     self._logger.error("User not found for update", user_id=user_id)
                     raise UserNotFoundException(str(user_id))
 
                 # Atualizar a entidade existente diretamente com os novos dados do DTO
                 existing_user.update_details(dto.name, dto.email)
-                domain_service = self._domain_service_factory.create_user_domain_service(self._uow.users)
+                domain_service = self._domain_service_factory.create_user_domain_service(self._uow.user_repository)
 
                 # Validar a entidade atualizada, incluindo a verificação de unicidade de e-mail se ele mudou
                 await domain_service.validate_user_update(user_id, existing_user)
                 # Salvar a entidade atualizada
-                saved_user = await self._uow.users.save(existing_user)
+                saved_user = await self._uow.user_repository.save(existing_user)
                 await self._uow.commit()
 
                 saved_user_dto = UserDTO(
@@ -212,7 +212,7 @@ class GetUserUseCase(BaseUseCase):
         async with self._uow:
             try:
                 self._logger.info("Getting user", user_id=user_id)
-                user = await self._uow.users.find_by_id(user_id)
+                user = await self._uow.user_repository.find_by_id(user_id)
 
                 if not user:
                     self._logger.error("User not found", user_id=user_id)
@@ -239,13 +239,13 @@ class DeleteUserUseCase(BaseUseCase):
                 self._logger.info("Starting user deletion", user_id=user_id)
 
                 # Check if user exists
-                existing_user = await self._uow.users.find_by_id(user_id)
+                existing_user = await self._uow.user_repository.find_by_id(user_id)
                 if not existing_user:
                     self._logger.error("User not found for deletion", user_id=user_id)
                     raise UserNotFoundException(str(user_id))
 
                 # Perform deletion
-                success = await self._uow.users.delete(user_id)
+                success = await self._uow.user_repository.delete(user_id)
 
                 if success:
                     await self._uow.commit()

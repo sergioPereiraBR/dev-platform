@@ -6,12 +6,15 @@ from dev_platform.domain.user.value_objects import Email, UserName
 
 @dataclass # Removed frozen=True
 class User:
+    """Entidade de domínio representando um usuário."""
+    # O id é opcional, pois pode ser None quando o usuário é criado
     id: Optional[int]
     name: UserName
     email: Email
 
     @classmethod
     def create(cls, name: str, email: str) -> "User":
+        """Cria um novo usuário, validando nome e e-mail via Value Objects."""
         return cls(id=None, name=UserName(name), email=Email(email))
     
     def with_id(self, new_id: int) -> "User":

@@ -16,29 +16,9 @@ from dev_platform.infrastructure.database.models import UserModel
 
 
 class SQLUserRepository(IUserRepository):
+    """SQLAlchemy implementation of the IUserRepository interface."""
     def __init__(self, session: AsyncSession):
         self._session = session
-
-    def _handle_database_error(self, operation: str, error: Exception, **context):
-        """Centralized error handling for database operations."""
-        if isinstance(error, IntegrityError):
-            # Check if it's a unique constraint violation
-            if (
-                "email" in str(error.orig).lower()
-                and "unique" in str(error.orig).lower()
-            ):
-                email = context.get("email", "unknown")
-                raise UserAlreadyExistsException(email)
-
-        # Log context information for debugging
-        context_str = ", ".join([f"{k}={v}" for k, v in context.items()])
-        error_msg = f"{operation} failed"
-        if context_str:
-            error_msg += f" ({context_str})"
-
-        raise DatabaseException(
-            operation=operation, reason=str(error), original_exception=error
-        )
 
     def _convert_to_domain_user(self, db_user: UserModel) -> User:
         """Convert database model to domain entity."""
@@ -88,12 +68,19 @@ class SQLUserRepository(IUserRepository):
             # Re-raise domain exceptions as-is
             raise
         except SQLAlchemyError as e:
-            self._handle_database_error(
-                operation="save_user", error=e, user_id=user.id, email=user.email.value
+            RepositoryExceptionHandler.handle_sqlalchemy_error(
+                operation="save_user", 
+                error=e, 
+                user_id=user.id, 
+                name=user.name.value, 
+                email=user.email.value
             )
         except Exception as e:
-            self._handle_database_error(
-                operation="save_user", error=e, user_id=user.id, email=user.email.value
+            RepositoryExceptionHandler.handle_generic_error(
+                operation="save_user", 
+                error=e, 
+                user_id=user.id, 
+                email=user.email.value
             )
 
     async def find_by_email(self, email: str) -> Optional[User]:
@@ -109,9 +96,9 @@ class SQLUserRepository(IUserRepository):
             return None
 
         except SQLAlchemyError as e:
-            self._handle_database_error(operation="find_by_email", error=e, email=email)
+            RepositoryExceptionHandler.handle_sqlalchemy_error(operation="find_by_email", error=e, email=email)
         except Exception as e:
-            self._handle_database_error(operation="find_by_email", error=e, email=email)
+            RepositoryExceptionHandler.handle_generic_error(operation="find_by_email", error=e, email=email)
         return None
 
     async def find_all(self) -> List[User]:
@@ -123,9 +110,9 @@ class SQLUserRepository(IUserRepository):
             return [self._convert_to_domain_user(db_user) for db_user in db_users]
 
         except SQLAlchemyError as e:
-            self._handle_database_error(operation="find_all_users", error=e)
+            RepositoryExceptionHandler.handle_sqlalchemy_error(operation="find_all_users", error=e)
         except Exception as e:
-            self._handle_database_error(operation="find_all_users", error=e)
+            RepositoryExceptionHandler.handle_generic_error(operation="find_all_users", error=e)
 
         return (
             []
@@ -144,22 +131,21 @@ class SQLUserRepository(IUserRepository):
             return None
 
         except SQLAlchemyError as e:
-            self._handle_database_error(
+            RepositoryExceptionHandler.handle_sqlalchemy_error(
                 operation="find_by_id", error=e, user_id=user_id
             )
         except Exception as e:
-            self._handle_database_error(
+            RepositoryExceptionHandler.handle_generic_error(
                 operation="find_by_id", error=e, user_id=user_id
             )
 
         return None
 
     async def find_by_ids(self, user_ids: List[int]) -> List[User]:
+        """Find users by a list of IDs."""
         result = await self._session.execute(
             select(UserModel).where(UserModel.id.in_(user_ids))
         )
-        if result is None:
-            return []  # Nota de teste: Verificar resultado
 
         return [self._convert_to_domain_user(u) for u in result.scalars().all()]
 
@@ -186,11 +172,11 @@ class SQLUserRepository(IUserRepository):
             # Re-raise domain exceptions as-is
             raise
         except SQLAlchemyError as e:
-            self._handle_database_error(
+            RepositoryExceptionHandler.handle_sqlalchemy_error(
                 operation="delete_user", error=e, user_id=user_id
             )
         except Exception as e:
-            self._handle_database_error(
+            RepositoryExceptionHandler.handle_generic_error(
                 operation="delete_user", error=e, user_id=user_id
             )  # Nota de teste: Retornar False se a exclusão falhar, o que é mais intuitivo do que retornar None.
         return False
@@ -206,11 +192,11 @@ class SQLUserRepository(IUserRepository):
             return [self._convert_to_domain_user(db_user) for db_user in db_users]
 
         except SQLAlchemyError as e:
-            self._handle_database_error(
+            RepositoryExceptionHandler.handle_sqlalchemy_error(
                 operation="find_by_name_contains", error=e, name_part=name_part
             )
         except Exception as e:
-            self._handle_database_error(
+            RepositoryExceptionHandler.handle_generic_error(
                 operation="find_by_name_contains", error=e, name_part=name_part
             )
 
@@ -224,9 +210,9 @@ class SQLUserRepository(IUserRepository):
             return count if count is not None else 0
 
         except SQLAlchemyError as e:
-            self._handle_database_error(operation="count_users", error=e)
+            RepositoryExceptionHandler.handle_sqlalchemy_error(operation="count_users", error=e)
         except Exception as e:
-            self._handle_database_error(operation="count_users", error=e)
+            RepositoryExceptionHandler.handle_generic_error(operation="count_users", error=e)
 
         return 0  # Nota de teste: Retornar 0 se a contagem falhar, o que é mais intuitivo do que retornar None.
 

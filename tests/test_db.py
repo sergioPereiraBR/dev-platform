@@ -11,7 +11,7 @@ from src.dev_platform.infrastructure.database.unit_of_work import (
 # Mock mais simples
 async def test_create_user():
     mock_uow = Mock(spec=AbstractUnitOfWork)
-    mock_uow.users.save.return_value = User(id=1, name="Test", email="test@test.com")
+    mock_uow.user_repository.save.return_value = User(id=1, name="Test", email="test@test.com")
 
     use_case = AsyncCreateUserUseCase()
     # Test com mock...

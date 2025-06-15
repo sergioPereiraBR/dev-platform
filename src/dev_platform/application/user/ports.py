@@ -5,6 +5,9 @@ from dev_platform.domain.user.interfaces import IUserRepository
 
 
 class UnitOfWork(ABC):
+    """
+    Interface for the Unit of Work pattern.
+    """
     users: IUserRepository
 
     @abstractmethod

@@ -31,7 +31,7 @@ class CompositionRoot:
 
     def __init__(self):
         # self._config = config or {}
-        self._logger = StructuredLogger()
+        self._logger = StructuredLogger(CONFIG__=CONFIG)
         self._uow = None
         self._domain_service_factory = DomainServiceFactory()
 
