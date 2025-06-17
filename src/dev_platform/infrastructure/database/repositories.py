@@ -7,10 +7,15 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from dev_platform.domain.user.interfaces import IUserRepository
 from dev_platform.domain.user.entities import User
 from dev_platform.domain.user.value_objects import UserName, Email
-from dev_platform.domain.user.exceptions import (
-    DatabaseException,
+from dev_platform.domain.exceptions import (
+    DatabaseException, 
+)
+from dev_platform.domain.user.user_exceptions import (
+    UserValidationException,
     UserAlreadyExistsException,
     UserNotFoundException,
+    EmailDomainNotAllowedException,
+    UserValidationException
 )
 from dev_platform.infrastructure.database.models import UserModel
 

@@ -4,7 +4,7 @@ from dev_platform.application.user.ports import Logger, UnitOfWork
 from dev_platform.application.user.dtos import UserCreateDTO, UserUpdateDTO
 from dev_platform.domain.user.entities import User
 from dev_platform.domain.user.services import DomainServiceFactory
-from dev_platform.domain.user.exceptions import (
+from dev_platform.domain.exceptions import (
     UserValidationException,
     UserAlreadyExistsException,
     UserNotFoundException,

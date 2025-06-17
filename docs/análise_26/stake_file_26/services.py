@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from dev_platform.infrastructure.config import CONFIG
 from dev_platform.domain.user.interfaces import IUserRepository 
 from dev_platform.domain.user.entities import User
-from dev_platform.domain.user.exceptions import (
+from dev_platform.domain.exceptions import (
     UserAlreadyExistsException,
     UserNotFoundException,
     EmailDomainNotAllowedException,

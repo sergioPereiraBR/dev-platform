@@ -4,7 +4,7 @@ import json
 from typing import Dict, Any
 from dotenv import load_dotenv
 import warnings
-from dev_platform.domain.user.exceptions import ConfigurationException
+from dev_platform.domain.exceptions import ConfigurationException
 
 # Validação de Variáveis:
 # Não há evidências de validação automática das variáveis de ambiente.

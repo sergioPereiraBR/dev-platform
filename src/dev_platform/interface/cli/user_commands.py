@@ -15,7 +15,7 @@ from dev_platform.infrastructure.config import CONFIG
 from dev_platform.infrastructure.database.unit_of_work import SQLUnitOfWork
 from dev_platform.application.ports.logger import ILogger
 from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
-from dev_platform.domain.user.exceptions import ConfigurationException
+from dev_platform.domain.exceptions import ConfigurationException
 
 # Logger global para uso em run_async
 _LOGGER: ILogger = StructuredLogger()

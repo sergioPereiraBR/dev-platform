@@ -9,7 +9,7 @@ import os
 import json
 from typing import Dict, Any, Optional, Callable, Type
 from dotenv import load_dotenv
-from dev_platform.domain.user.exceptions import ConfigurationException
+from dev_platform.domain.exceptions import ConfigurationException
 from dev_platform.application.ports.logger import ILogger
 from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
 

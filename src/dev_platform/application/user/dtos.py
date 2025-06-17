@@ -1,5 +1,5 @@
 # ./src/dev_platform/application/user/dtos.py
-from pydantic import BaseModel, StrictStr, field_validator
+from pydantic import BaseModel, StrictStr, EmailStr, field_validator
 
 class UserDTO(BaseModel):
     """
@@ -8,20 +8,6 @@ class UserDTO(BaseModel):
     id: StrictStr
     name: StrictStr
     email: StrictStr
-
-    @classmethod
-    def from_entity(cls, entity):
-        """
-        Cria um UserDTO a partir de uma entidade User.
-        """
-        return cls(id=str(entity.id), name=entity.name.value, email=entity.email.value)
-
-    def to_entity(self):
-        """
-        Converte o UserDTO de volta para uma entidade User.
-        """
-        from dev_platform.domain.user.entities import User  # Importar aqui para evitar dependência circular
-        return User.create(name=self.name, email=self.email)
 
     class Config:
         """
@@ -34,7 +20,7 @@ class UserCreateDTO(BaseModel):
     Data Transfer Object for creating a new User.
     """
     name: StrictStr
-    email: StrictStr
+    email: EmailStr
 
     @field_validator("name", mode="before")
     def validate_name(cls, v):
@@ -65,7 +51,7 @@ class UserUpdateDTO(BaseModel):
     Data Transfer Object for updating an existing User.
     """
     name: StrictStr
-    email: StrictStr
+    email: EmailStr
 
     @field_validator("name", mode="before")
     def validate_name(cls, v):

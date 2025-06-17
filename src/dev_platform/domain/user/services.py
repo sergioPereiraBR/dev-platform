@@ -3,34 +3,18 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Set
 import re
 from datetime import datetime
-from dev_platform.infrastructure.config import CONFIG
 from dev_platform.domain.user.interfaces import IUserRepository 
 from dev_platform.domain.user.entities import User
-from dev_platform.domain.user.exceptions import (
+from dev_platform.domain.exceptions import DatabaseException
+from dev_platform.domain.user.user_exceptions import (
+    UserValidationException,
     UserAlreadyExistsException,
     UserNotFoundException,
     EmailDomainNotAllowedException,
-    UserValidationException
 )
 
-
-
-class UserUniquenessService:
-    """Service focused on uniqueness validation."""
-
-    def __init__(self, user_repository):
-        self._repository = user_repository
-
-    async def ensure_email_is_unique(
-        self, email: str, exclude_user_id: Optional[int] = None
-    ) -> None:
-        existing_user = await self._repository.find_by_email(email)
-        if existing_user and (
-            exclude_user_id is None or existing_user.id != exclude_user_id
-        ):
-            # from domain.user.exceptions import UserAlreadyExistsException
-            raise UserAlreadyExistsException(email)
-
+# --- Regras de validação devem ser extraídas para um módulo próprio (ex: validation_rules.py) ---
+# Aqui mantemos apenas a interface base para uso no domínio.
 
 class ValidationRule(ABC):
     """Base class for validation rules."""
@@ -48,219 +32,38 @@ class ValidationRule(ABC):
     def rule_name(self) -> str:
         pass
 
+# --- Serviço de domínio focado apenas na lógica de negócio ---
 
-class EmailDomainValidationRule(ValidationRule):
-    """Validates that email domain is in allowed list."""
+class UserUniquenessService:
+    """Service focused on uniqueness validation."""
 
-    def __init__(self, allowed_domains: List[str]):
-        self.allowed_domains = set(domain.lower() for domain in allowed_domains)
+    def __init__(self, user_repository: IUserRepository):
+        self._repository = user_repository
 
-    async def validate(self, user: User) -> Optional[str]:
-        email_domain = user.email.value.split("@")[1].lower()
-        if email_domain not in self.allowed_domains:
-            return f"Email domain '{email_domain}' is not allowed. Allowed domains: {', '.join(self.allowed_domains)}"
-        return None
-
-    @property
-    def rule_name(self) -> str:
-        return "email_domain_validation"
-
-
-class ForbiddenWordsValidationRule(ValidationRule):
-    """
-    Valida se o nome do usuário contém palavras específicas proibidas.
-
-    Esta regra é utilizada para bloquear nomes que contenham termos definidos explicitamente
-    como proibidos pela aplicação, podendo ser nomes de marcas, palavras ofensivas específicas,
-    nomes reservados, etc. A lista de palavras proibidas é fornecida na inicialização da regra.
-
-    Exemplo de uso:
-        rule = ForbiddenWordsValidationRule(forbidden_words=["admin", "root", "empresa"])
-        erro = await rule.validate(user)
-        # Retorna mensagem se o nome contiver alguma dessas palavras.
-
-    Diferença para NameProfanityValidationRule:
-        - Esta regra é genérica e pode ser usada para qualquer lista de palavras proibidas,
-          não necessariamente palavrões.
-        - Útil para bloquear nomes institucionais, marcas, ou palavras sensíveis específicas.
-    """
-
-    def __init__(self, forbidden_words: List[str]):
-        self.forbidden_words = [word.lower() for word in forbidden_words]
-
-    async def validate(self, user: User) -> Optional[str]:
-        for word in self.forbidden_words:
-            if word in user.name.value.lower():
-                return f"Name contains forbidden word: {word}"
-        return None
-
-    @property
-    def rule_name(self) -> str:
-        return "forbidden_words_validation"
-
-
-class NameProfanityValidationRule(ValidationRule):
-    """
-    Valida se o nome do usuário contém palavrões ou termos ofensivos.
-
-    Esta regra é especializada para filtrar nomes que contenham palavrões, xingamentos
-    ou termos considerados ofensivos, geralmente baseando-se em uma lista de palavras
-    de baixo calão. A lista de palavrões é fornecida na inicialização da regra.
-
-    Exemplo de uso:
-        rule = NameProfanityValidationRule(forbidden_words=["palavrão1", "palavrão2"])
-        erro = await rule.validate(user)
-        # Retorna mensagem se o nome contiver algum palavrão.
-
-    Diferença para ForbiddenWordsValidationRule:
-        - Esta regra é voltada especificamente para filtragem de linguagem imprópria.
-        - Útil para garantir que nomes de usuários não contenham ofensas ou termos inapropriados.
-    """
-
-    def __init__(self, forbidden_words: List[str]):
-        self.forbidden_words = [word.lower() for word in forbidden_words]
-
-    async def validate(self, user: User) -> Optional[str]:
-        name_lower = user.name.value.lower()
-        for word in self.forbidden_words:
-            if word in name_lower:
-                return f"Name contains forbidden word: {word}"
-        return None
-
-    @property
-    def rule_name(self) -> str:
-        return "name_profanity_validation"
-
-
-class EmailFormatAdvancedValidationRule(ValidationRule):
-    """Advanced email format validation beyond basic regex."""
-
-    def __init__(self):
-        # More restrictive email validation
-        self.pattern = re.compile(
-            r"^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?@[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,}$"
-        )
-
-    async def validate(self, user: User) -> Optional[str]:
-        email = user.email.value
-
-        # Check basic format
-        if not self.pattern.match(email):
-            return "Email format is invalid"
-
-        # Check for consecutive dots
-        if ".." in email:
-            return "Email cannot contain consecutive dots"
-
-        # Check for valid length
-        if len(email) > 254:
-            return "Email is too long (max 254 characters)"
-
-        local_part, domain_part = email.split("@")
-
-        # Check local part length
-        if len(local_part) > 64:
-            return "Email local part is too long (max 64 characters)"
-
-        # Check domain part
-        if len(domain_part) > 253:
-            return "Email domain part is too long (max 253 characters)"
-
-        return None
-
-    @property
-    def rule_name(self) -> str:
-        return "email_format_advanced_validation"
-
-
-class NameContentValidationRule(ValidationRule):
-    """Validates name content and format."""
-
-    def __init__(self, allowed_chars: Optional[Set[str]] = None):
-        if allowed_chars is None:
-            allowed_chars = set(
-                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ -'àáâãèéêìíîòóôõùúûçÀÁÂÃÈÉÊÌÍÎÒÓÔÕÙÚÛÇ"
-            )  # Carregue de config externa
-        self.allowed_chars = allowed_chars
-
-    async def validate(self, user: User) -> Optional[str]:
-        name = user.name.value
-
-        # Check for only whitespace
-        if name.strip() != name:
-            return "Name cannot start or end with whitespace"
-
-        # Check for excessive whitespace
-        if "  " in name:
-            return "Name cannot contain consecutive spaces"
-
-        # Check for numbers
-        if any(char.isdigit() for char in name):
-            return "Name cannot contain numbers"
-
-        # Check for special characters (allow only letters, spaces, hyphens, apostrophes)
-        if not all(char in self.allowed_chars for char in name):
-            invalid_chars = [char for char in name if char not in self.allowed_chars]
-            return f"Name contains invalid characters: {', '.join(set(invalid_chars))}"
-
-        # Check minimum word count
-        words = name.split()
-        if len(words) < 2:
-            return "Name must contain at least first and last name"
-
-        # Check each word length
-        for word in words:
-            if len(word) < 2:
-                return "Each name part must be at least 2 characters long"
-
-        return None
-
-    @property
-    def rule_name(self) -> str:
-        return "name_content_validation"
-
-
-class BusinessHoursValidationRule(ValidationRule):
-    """Example rule that validates based on business hours."""
-
-    def __init__(self, business_hours_only: bool = False):
-        self.business_hours_only = business_hours_only
-
-    async def validate(self, user: User) -> Optional[str]:
-        if not self.business_hours_only:
-            return None
-
-        now = datetime.now()
-        # Check if it's business hours (9 AM to 5 PM, Monday to Friday)
-        if now.weekday() >= 5:  # Saturday or Sunday
-            return "User registration only allowed during business days"
-
-        if now.hour < 9 or now.hour >= 17:
-            return "User registration only allowed during business hours (9 AM - 5 PM)"
-
-        return None
-
-    @property
-    def rule_name(self) -> str:
-        return "business_hours_validation"
-
+    async def ensure_email_is_unique(
+        self, email: str, exclude_user_id: Optional[int] = None
+    ) -> None:
+        existing_user = await self._repository.find_by_email(email)
+        if existing_user and (
+            exclude_user_id is None or existing_user.id != exclude_user_id
+        ):
+            raise UserAlreadyExistsException(email)
 
 class UserDomainService:
-    """Service for complex user domain validations and business rules."""
+    """
+    Service for complex user domain validations and business rules.
+    Recebe explicitamente as regras de validação a serem aplicadas.
+    """
 
-    def __init__(self, user_repository, validation_rules: Optional[List[ValidationRule]] = None):
+    def __init__(
+        self,
+        user_repository: IUserRepository,
+        validation_rules: Optional[List[ValidationRule]] = None,
+        uniqueness_service: Optional[UserUniquenessService] = None,
+    ):
         self._repository = user_repository
         self._validation_rules = validation_rules or []
-        self._setup_default_rules()
-
-    def _setup_default_rules(self):
-        """Setup default validation rules if none provided."""
-        if not self._validation_rules:
-            self._validation_rules = [
-                EmailFormatAdvancedValidationRule(),
-                NameContentValidationRule(),
-                # Add more default rules as needed
-            ]
+        self._uniqueness_service = uniqueness_service or UserUniquenessService(user_repository)
 
     def add_validation_rule(self, rule: ValidationRule):
         """Add a custom validation rule."""
@@ -281,7 +84,7 @@ class UserDomainService:
 
         # Check uniqueness first
         try:
-            await self._validate_unique_email(user.email.value)
+            await self._uniqueness_service.ensure_email_is_unique(user.email.value)
         except UserAlreadyExistsException as e:
             validation_errors["email"] = e.message
 
@@ -298,12 +101,6 @@ class UserDomainService:
         if validation_errors:
             raise UserValidationException(validation_errors)
 
-    async def _validate_unique_email(self, email: str):
-        """Validate that email is unique in the system."""
-        existing_user = await self._repository.find_by_email(email)
-        if existing_user:
-            raise UserAlreadyExistsException(email)
-
     async def validate_user_update(self, user_id: int, updated_user: User) -> None:
         """
         Validate user update, checking uniqueness only if email changed.
@@ -318,7 +115,7 @@ class UserDomainService:
         # Check email uniqueness only if email changed
         if current_user.email.value != updated_user.email.value:
             try:
-                await self._validate_unique_email(updated_user.email.value)
+                await self._uniqueness_service.ensure_email_is_unique(updated_user.email.value)
             except UserAlreadyExistsException as e:
                 validation_errors["email"] = e.message
 
@@ -344,20 +141,16 @@ class UserDomainService:
     async def validate_user_creation_constraints(self, user: User) -> None:
         """
         Validate constraints specific to user creation.
-        This can include rate limiting, domain restrictions, etc.
+        (Exemplo: limite de usuários, regras de negócio específicas)
         """
         validation_errors = {}
 
-        # Example: Check if we've reached user limit for the day
-        # This is just an example - you'd implement based on your business rules
         try:
             current_count = await self._repository.count()
-            if current_count >= 10000:  # Example limit
+            if current_count >= 10000:  # Exemplo de limite
                 validation_errors["system_limit"] = "Maximum number of users reached"
         except Exception as e:
-            validation_errors[
-                "system_check"
-            ] = f"Unable to verify system constraints: {str(e)}"
+            validation_errors["system_check"] = f"Unable to verify system constraints: {str(e)}"
 
         if validation_errors:
             raise UserValidationException(validation_errors)
@@ -375,25 +168,21 @@ class UserDomainService:
                     user.email.value, email_domain, domain_whitelist
                 )
 
-
 class UserAnalyticsService:
     """Service for user analytics and reporting."""
 
-    def __init__(self, user_repository):
+    def __init__(self, user_repository: IUserRepository):
         self._repository = user_repository
 
     async def get_user_statistics(self) -> Dict[str, int]:
         """Get basic user statistics."""
         try:
             total_users = await self._repository.count()
-
-            # You could add more analytics here
             return {
                 "total_users": total_users,
-                # Add more metrics as needed
             }
         except Exception as e:
-            raise RuntimeError(f"Failed to get user statistics: {str(e)}")
+            raise DatabaseException("count", str(e), e)
 
     async def find_users_by_domain(self, domain: str) -> List[User]:
         """Find all users with emails from a specific domain."""
@@ -405,65 +194,4 @@ class UserAnalyticsService:
                 if user.email.value.split("@")[1].lower() == domain.lower()
             ]
         except Exception as e:
-            raise RuntimeError(f"Failed to find users by domain: {str(e)}")
-
-
-# Factory for creating domain services with common configurations
-class DomainServiceFactory:
-    """Factory for creating domain services with common configurations.
-    This allows for easy instantiation of services with shared rules and configurations.
-    
-    Usage:
-    factory = DomainServiceFactory()
-    user_service = factory.create_user_domain_service(user_repository, enable_profanity_filter=True, allowed_domains=["example.com", "test.com"])
-    This factory can be extended to create other domain services with similar patterns.
-
-    Note: This is a simplified example. In a real application, you might want to use dependency injection frameworks or more complex factories.
-
-    Usage
-    to create a UserDomainService with common validation rules and configurations.
-    This factory allows you to create domain services with shared configurations, such as enabling profanity filters, setting allowed email domains, and applying business hours validation.
-    This is useful for maintaining consistency across different parts of the application that require user domain services.
-    
-    Example:
-    factory = DomainServiceFactory()
-    user_service = factory.create_user_domain_service(
-        user_repository,
-        enable_profanity_filter=True,
-        allowed_domains=["example.com", "test.com"],
-        business_hours_only=True
-    )
-    """
-
-    def __init__(self, user_repository: IUserRepository = None):
-        self.user_repository: Optional[IUserRepository] = user_repository
-
-    def create_user_domain_service(
-        self,
-        user_repository: IUserRepository,
-        enable_profanity_filter: bool = False,
-        allowed_domains: Optional[List[str]] = None,
-        business_hours_only: bool = False,
-    ) -> UserDomainService:
-        """Create a UserDomainService with common rule configurations."""
-
-        rules = [EmailFormatAdvancedValidationRule(), NameContentValidationRule()]
-
-        if enable_profanity_filter:
-            forbidden_words_str = CONFIG.get("validation.forbidden_words", "")
-            forbidden_words = [word.strip() for word in forbidden_words_str.split(',') if word.strip()]
-            if forbidden_words:
-                rules.append(NameProfanityValidationRule(forbidden_words))
-            # else: log ou warning opcional
-
-        if allowed_domains:
-            rules.append(EmailDomainValidationRule(allowed_domains))
-
-        if business_hours_only:
-            rules.append(BusinessHoursValidationRule(business_hours_only))
-
-        return UserDomainService(user_repository, rules)
-
-    def create_analytics_service(self, user_repository) -> UserAnalyticsService:
-        """Create a UserAnalyticsService."""
-        return UserAnalyticsService(user_repository)
+            raise DatabaseException("find_all", str(e), e)
