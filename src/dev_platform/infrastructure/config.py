@@ -1,4 +1,10 @@
 # ./src/dev_platform/infrastructure/config.py
+# -*- coding: utf-8 -*-
+"""
+Este módulo define a infraestrutura de configuração do DEV Platform,
+responsável por carregar e acessar as configurações do sistema.
+"""
+
 import os
 import json
 from typing import Dict, Any, Optional, Callable, Type
