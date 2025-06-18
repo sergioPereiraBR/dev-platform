@@ -56,9 +56,19 @@ class CreateUserUseCase(BaseUseCase):
             self._logger.set_correlation_id()
             self._logger.info("Starting user creation", name=dto.name, email=dto.email)
             try:
+                # 1. Caso de uso orquestra a verificação de unicidade PRIMEIRO 
+                existing_user = await self._uow.user_repository.find_by_email(dto.email) 
+                if existing_user: 
+                    raise UserAlreadyExistsException(dto.email) 
+                
+                # 2. Cria a entidade de domínio
                 user = User.create(name=dto.name, email=dto.email)
+
+                # 3. Executa apenas as regras de negócio puras do domínio
                 await self._domain_service.validate_business_rules(user)
                 self._logger.info("User validation passed", email=dto.email)
+
+                # 4. Salva o usuário
                 saved_user = await self._uow.user_repository.save(user)
                 await self._uow.commit()
                 self._logger.info(
@@ -190,43 +200,4 @@ class DeleteUserUseCase(BaseUseCase):
                 self._logger.error("User not found for deletion", user_id=user_id)
                 raise
 
-# Não é necessário um UseCaseFactory se o Composition Root já injeta as dependências.
-# Instancie os use cases diretamente na camada de aplicação/composição.
-# Use cases podem ser instanciados diretamente onde necessário, por exemplo:
-# create_user_use_case = CreateUserUseCase(uow, logger, domain_service)
-# Isso permite maior flexibilidade e evita a complexidade de uma fábrica.
-# Use cases podem ser injetados diretamente nas rotas ou controladores, por exemplo:    
-# from dev_platform.application.user.use_cases import CreateUserUseCase
-# from dev_platform.infrastructure.composition_root import CompositionRoot
-#
-# def create_user_route(composition_root: CompositionRoot):
-#     create_user_use_case = composition_root.create_user_use_case
-#     # Use create_user_use_case in your route handler  
-#     return create_user_use_case
-#             raise EmailDomainNotAllowedException(
-#                 f"Email domain '{dto.email.split('@')[-1]}' is not allowed"
-#             )
-#         return [
-#             EmailFormatAdvancedValidationRule(),
-#             NameContentValidationRule(),
-#             EmailDomainValidationRule(allowed_domains=allowed_domains),
-#             BusinessHoursValidationRule(),
-#         ]
-#
-#     def _enterprise_rules(self) -> List[Any]:
-#         allowed_domains = self._parse_csv("allowed_domains")
-#         forbidden_words = self._parse_csv("validation_forbidden_words")
-#         if not allowed_domains:
-#             self._logger.warning("Allowed domains list is empty in configuration.")
-#         if not forbidden_words:
-
-#             self._logger.warning("Validation forbidden words list is empty in configuration.")
-#         return [
-#             EmailFormatAdvancedValidationRule(),
-#             NameContentValidationRule(),
-#             EmailDomainValidationRule(allowed_domains=allowed_domains),
-#             BusinessHoursValidationRule(),
-#             NameProfanityValidationRule(forbidden_words=forbidden_words),
-#             ForbiddenWordsValidationRule(forbidden_words=forbidden_words)
-#         ]
-#         return [
+        

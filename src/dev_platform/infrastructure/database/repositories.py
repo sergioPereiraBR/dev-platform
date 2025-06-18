@@ -127,7 +127,9 @@ class SQLUserRepository(IUserRepository):
 
         return (
             []
-        )  # Nota de teste: Retornar None aqui pode ser problemático, pois o método deve retornar uma lista vazia se não houver usuários. Considere retornar uma lista vazia em vez de None.
+        )   # Nota de teste: Retornar None aqui pode ser problemático,
+            # pois o método deve retornar uma lista vazia se não houver usuários. 
+            # Considere retornar uma lista vazia em vez de None.
 
     async def find_by_id(self, user_id: int) -> Optional[User]:
         """Find a user by ID."""

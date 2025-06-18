@@ -62,15 +62,8 @@ class UserDomainService:
     Recebe explicitamente as regras de validação a serem aplicadas.
     """
 
-    def __init__(
-        self,
-        user_repository: IUserRepository,
-        validation_rules: Optional[List[ValidationRule]] = None,
-        uniqueness_service: Optional[UserUniquenessService] = None,
-    ):
-        self._repository = user_repository
-        self._validation_rules = validation_rules or []
-        self._uniqueness_service = uniqueness_service or UserUniquenessService(user_repository)
+    def __init__(self, validation_rules: List[ValidationRule]): 
+        self._validation_rules = validation_rules 
 
     def add_validation_rule(self, rule: ValidationRule):
         """Add a custom validation rule."""
@@ -88,12 +81,6 @@ class UserDomainService:
         Raises UserValidationException if any rule fails.
         """
         validation_errors = {}
-
-        # Check uniqueness first
-        try:
-            await self._uniqueness_service.ensure_email_is_unique(user.email.value)
-        except UserAlreadyExistsException as e:
-            validation_errors["email"] = e.message
 
         # Run all validation rules
         for rule in self._validation_rules:
