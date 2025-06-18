@@ -199,5 +199,4 @@ class DeleteUserUseCase(BaseUseCase):
             except UserNotFoundException:
                 self._logger.error("User not found for deletion", user_id=user_id)
                 raise
-
         
