@@ -13,8 +13,13 @@ from dev_platform.domain.user.value_objects import Email
 
 class IUserRepository(ABC):
     @abstractmethod
-    async def save(self, user: User) -> User:
-        """Salva um usuário no repositório."""
+    async def add(self, user: User) -> User:
+        """Adiciona um novo usuário ao repositório."""
+        pass
+
+    @abstractmethod
+    async def update(self, user: User) -> User:
+        """Atualiza um usuário existente no repositório."""
         pass
 
     @abstractmethod

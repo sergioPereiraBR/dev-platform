@@ -102,16 +102,16 @@ class UserDomainService:
         validation_errors = {}
 
         # Get current user
-        # current_user = await self._repository.find_by_id(user_id)
-        # if not current_user:
-        #     raise UserNotFoundException(str(user_id))
+        current_user = await self._repository.find_by_id(user_id)
+        if not current_user:
+            raise UserNotFoundException(str(user_id))
 
         # Check email uniqueness only if email changed
-        # if current_user.email.value != updated_user.email.value:
-        #     try:
-        #         await self._uniqueness_service.ensure_email_is_unique(updated_user.email.value)
-        #     except UserAlreadyExistsException as e:
-        #         validation_errors["email"] = e.message
+        if current_user.email.value != updated_user.email.value:
+            try:
+                await self._uniqueness_service.ensure_email_is_unique(updated_user.email.value)
+            except UserAlreadyExistsException as e:
+                validation_errors["email"] = e.message
 
         # Run validation rules
         for rule in self._validation_rules:

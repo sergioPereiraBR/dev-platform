@@ -124,18 +124,24 @@ class UserCommands:
         Atualiza um usuário existente.
         """
         try:
-            # A CLI agora apenas passa os dados, sem lógica de preenchimento
             async with SQLUnitOfWork() as uow:
                 repo = uow.user_repository
-                # O DTO agora aceita valores nulos
-                update_dto = UserUpdateDTO(name=name, email=email)
+                get_use_case = self._composition_root.get_user_use_case(uow, repo)
+                existing_user: UserDTO = await get_use_case.execute(user_id=user_id)
+                update_name = name if name is not None else getattr(existing_user.name, "value", existing_user.name)
+                update_email = email if email is not None else getattr(existing_user.email, "value", existing_user.email)
+                user_update_dto = UserUpdateDTO(name=update_name, email=update_email)
                 update_use_case = self._composition_root.update_user_use_case(uow, repo)
-                # O caso de uso agora tem toda a responsabilidade
-                updated_user = await update_use_case.execute(user_id=user_id, dto=update_dto)
-            return f"User {user_id} updated successfully: Name: {updated_user.name}, Email: {updated_user.email}"
+                updated_user_entity = await update_use_case.execute(user_id=user_id, dto=user_update_dto)
+                name_val = getattr(updated_user_entity.name, "value", updated_user_entity.name)
+                email_val = getattr(updated_user_entity.email, "value", updated_user_entity.email)
+                return f"User {user_id} updated successfully: ID {updated_user_entity.id}, Name: {name_val}, Email: {email_val}"
+        except ConfigurationException as ce:
+            self._logger.error(f"Configuration error: {ce}", exception=str(ce))
+            return f"Error: Configuration Error: {ce}"
         except Exception as e:
             self._logger.error(f"Error updating user: {e}", exception=str(e))
-        return f"Error: {e}"
+            return f"Error: {e}"
 
     async def get_user_async(self, user_id: int) -> str:
         """

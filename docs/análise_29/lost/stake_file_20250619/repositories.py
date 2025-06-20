@@ -46,39 +46,58 @@ class SQLUserRepository(IUserRepository):
                 reason=f"Invalid data in database: {str(e)}",
                 original_exception=e,
             )
-        
-    async def add(self, user: User) -> User:
-        """Adds a new user to the database."""
-        if user.id is not None:
-            raise DatabaseException(operation="add", reason="Cannot add a user that already has an ID.")
-        try:
-            db_user = UserModel(name=user.name.value, email=user.email.value)
-            self._session.add(db_user)
-            await self._session.flush()
-            return user.with_id(db_user.id)  # Retorna nova instância com ID
-        except IntegrityError as e:
-            # Transforma erro de violação de constraint em exceção de domínio
-            raise UserAlreadyExistsException(user.email.value) from e
-        except SQLAlchemyError as e:
-            raise DatabaseException(operation="add", reason=str(e), original_exception=e)
-        
-    async def update(self, user: User) -> User:
-        """Updates an existing user in the database."""
-        if user.id is None:
-            raise UserNotFoundException("None")
-        try:
-            # O find_by_id já foi feito no caso de uso, podemos ir direto para o merge ou update.
-            # A forma mais segura é buscar e atualizar para garantir que o registro existe.
-            db_user = await self._session.get(UserModel, user.id)
-            if not db_user:
-                raise UserNotFoundException(str(user.id))
 
-            db_user.name = user.name.value
-            db_user.email = user.email.value
-            await self._session.flush()
-            return user
+    async def save(self, user: User) -> User:
+        """Save a user to the database."""
+        try:
+            if user.id is None:
+                # Create new user
+                db_user = UserModel(name=user.name.value, email=user.email.value)
+                self._session.add(db_user)
+                await self._session.flush()
+
+                # Return user with the generated ID
+                return User(id=db_user.id, name=user.name, email=user.email)
+            else:
+                # Update existing user
+                result = await self._session.execute(
+                    select(UserModel).where(UserModel.id == user.id)
+                )
+                db_user = result.scalars().first()
+
+                if not db_user:
+                    raise UserNotFoundException(str(user.id))
+
+                db_user.name = user.name.value
+                db_user.email = user.email.value
+                await self._session.flush()
+
+                return User(id=db_user.id, name=user.name, email=user.email)
+
+        except UserNotFoundException:
+            # Re-raise domain exceptions as-is
+            raise
+        except UserAlreadyExistsException:
+            # Re-raise domain exceptions as-is
+            raise
         except SQLAlchemyError as e:
-            raise DatabaseException(operation="update", reason=str(e), original_exception=e)
+            self._logger.error(
+                "SQLAlchemy error in save_user",
+                extra={
+                    "operation": "save_user",
+                    "user_id": user.id,
+                    "name": user.name.value,
+                    "email": user.email.value,
+                    "error": str(e)
+                }
+            )
+            RepositoryExceptionHandler.handle_sqlalchemy_error(
+                operation="save_user", 
+                error=e, 
+                user_id=user.id, 
+                name=user.name.value, 
+                email=user.email.value
+            )
 
     async def find_by_email(self, email: str) -> Optional[User]:
         """Find a user by email address."""

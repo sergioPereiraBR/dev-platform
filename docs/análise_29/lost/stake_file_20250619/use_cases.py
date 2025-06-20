@@ -125,24 +125,17 @@ class UpdateUserUseCase(BaseUseCase):
         async with self._uow:
             self._logger.set_correlation_id()
             self._logger.info(
-                "Starting user update", user_id=user_id, update_data=dto.model_dump()
+                "Starting user update", user_id=user_id, name=dto.name, email=dto.email
             )
             try:
                 existing_user = await self._uow.user_repository.find_by_id(user_id)
                 if not existing_user:
                     self._logger.error("User not found for update", user_id=user_id)
                     raise UserNotFoundException(str(user_id))
-                
-                # 2. Lógica de atualização parcial (responsabilidade do caso de uso)
-                new_name = dto.name if dto.name is not None else existing_user.name.value
-                new_email = dto.email if dto.email is not None else existing_user.email.value
-
-                # 3. Lógica de negócio e validação
-                updated_user = existing_user.update_details(new_name, new_email)
-                await self._domain_service.validate_user_update(existing_user, updated_user) # Usa a versão melhorada do serviço
-
-                # 4. Persistência
-                saved_user = await self._uow.user_repository.update(updated_user)
+                # Atualizar a entidade existente diretamente com os novos dados do DTO
+                existing_user.update_details(dto.name, dto.email)
+                await self._domain_service.validate_user_update(user_id, existing_user)
+                saved_user = await self._uow.user_repository.save(existing_user)
                 await self._uow.commit()
                 saved_user_dto = user_to_dto(saved_user)
                 self._logger.info(

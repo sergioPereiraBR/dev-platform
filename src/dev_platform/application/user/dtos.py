@@ -5,6 +5,7 @@ Este módulo define os Data Transfer Objects (DTOs) para a entidade User,
 permitindo a transferência de dados entre camadas da aplicação.
 """
 
+from typing import Optional
 from pydantic import BaseModel, StrictStr, EmailStr, field_validator
 
 class UserDTO(BaseModel):
@@ -25,8 +26,9 @@ class UserCreateDTO(BaseModel):
     """
     Data Transfer Object for creating a new User.
     """
-    name: StrictStr
-    email: EmailStr
+    name: Optional[StrictStr] = None
+    email: Optional[EmailStr] = None
+
 
     @field_validator("name", mode="before")
     def validate_name(cls, v):

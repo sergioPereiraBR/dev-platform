@@ -47,7 +47,6 @@ else {
 # Copia os arquivos para o destino
 $FilesToCopy = @(
     "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\.vscode\settings.json",
-    "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\migrations\env.py",
     "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\alembic.ini",
     "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\.gitignore",
     "D:\02_trabalho\03_estudos_profissionais\computação\learning\Gemini\developer_platform\dev_platform\mypy.ini",
@@ -66,8 +65,6 @@ $FilesToCopy = @(
 foreach ($File in $FilesToCopy) {
     Copy-Item -Path $File -Destination $StakeHeaderFolderPath
 }
-
-
 
 # Função para obter um nome de arquivo único caso já exista
 function Get-UniqueFileName {

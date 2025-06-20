@@ -64,12 +64,46 @@ docs-serve = "mkdocs:serve"  # Iniciar servidor de documentação local
 docs-build = "mkdocs:build"  # Construir a documentação estática
 
 [tool.taskipy.tasks]
+# Definição de tarefas para o projeto
+format = "poetry run black ./src ./tests ./scripts"
+lint = "poetry run flake8 ./src ./tests ./scripts"
+test = "poetry run pytest --cov=dev_platform --cov-report=html --cov-report=term ./tests"
+test-async = "poetry run pytest-asyncio --cov=dev_platform --cov-report=html --cov-report=term ./tests"
+docs-serve = "poetry run mkdocs serve"  # Iniciar servidor de documentação local
+docs-build = "poetry run mkdocs build"  # Construir a documentação estática 
+docs-serve-live = "poetry run mkdocs serve --livereload"  # Iniciar servidor de documentação com recarregamento automático
+docs-serve-live-port = "poetry run mkdocs serve --livereload --dev-addr 0.0.0.0:8000"
+
+# Tarefas para gerenciamento de usuários - testes e desenvolvimento
+list = "poetry run python ./src/dev_platform/main.py user list-users"
+create = "poetry run python ./src/dev_platform/main.py user create-user --name 'Sergio Pereira' --email 'sergiopereira.br@hotmail.com'"
+delete = "poetry run python ./src/dev_platform/main.py user delete-user --email 'sergiopereira.br@hotmail.com'"
+update = "poetry run python ./src/dev_platform/main.py user update-user --email 'sergiopereira.br@hotmail.com' --name 'Sergio P.'"
+
+# Tarefas gerenciamento de usuários
+list_users = "poetry run python ./src/dev_platform/main.py user list-users"
+create_user = "poetry run python ./src/dev_platform/main.py user create-user --name 'Sergio Pereira' --email 'sergiopereira.br@hotmail.com'"
+delete_user = "poetry run python ./src/dev_platform/main.py user delete-user --email 'sergiopereira.br@hotmail.com'"
+update_user = "poetry run python ./src/dev_platform/main.py user update-user --email 'sergiopereira.br@hotmail.com' --name 'Sergio P.'"
+
+# Tarefas para gerenciamento de projetos - testes e desenvolvimento
+list_projects = "poetry run python ./src/dev_platform/main.py project list-projects"
+create_project = "poetry run python ./src/dev_platform/main.py project create-project --name 'Projeto Teste' --description 'Descrição do Projeto Teste'"
+delete_project = "poetry run python ./src/dev_platform/main.py project delete-project --name 'Projeto Teste'"
+update_project = "poetry run python ./src/dev_platform/main.py project update-project --name 'Projeto Teste' --description 'Descrição Atualizada do Projeto Teste'"
+
+# Tarefas para manipulação de arquivos e geração de relatórios
 clean = "pwsh -Command ./scripts/tools/del_folderes.ps1 './src' '__pycache__'"
 stack = "pwsh -Command ./scripts/tools/stack_files.ps1 './src' 'py'"
-list = "poetry run python ./src/dev_platform/main.py user list-users"
-files2pdf = "poetry run python ./scripts/tools/pdf_generator.py ./src/stake_file --title \"Arquivos do Projeto DEV Platform\" -v"
-analise_md2word = "poetry run python ./scripts/tools/md_to_word.py ./docs/análise_26.md" # Converte o arquivo Markdown em Word - Melhor no WSL Ubuntu 20.04
-onboarding_md2word = "poetry run python ./scripts/tools/md_to_word.py ./docs/onboarding_26.md" # Converte o arquivo Markdown em Word - Melhor no WSL Ubuntu 20.04
+stack2pdf = "poetry run python ./scripts/tools/pdf_generator.py ./src/stake_file --title \"Arquivos do Projeto DEV Platform\" -v"
+compilado = "poetry run python ./scripts/tools/pdf_generator.py ./src/stake_file --title \"Arquivos do Projeto DEV Platform\" -v"
+
+# Tarefas para conversão de arquivos Markdown para Word
+# (melhor executar no WSL Ubuntu 20.04)
+analise_md2word = "poetry run python ./scripts/tools/md_to_word.py ./docs/análise_26.md"
+onboarding_md2word = "poetry run python ./scripts/tools/md_to_word.py ./docs/onboarding_26.md"
+
+# Tarefas para análise de logs
 analisa_log = "poetry run python ./scripts/tools/log_analyzer_mvp.py --log_folder_path ./scripts/requisitos_log"
 
 [tool.mypy]
