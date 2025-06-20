@@ -1,8 +1,5 @@
 # ./.gitignore
 
-# Dependências do sistema
-node_modules/
-chrome/
 
 # Ambientes virtuais
 .venv/
