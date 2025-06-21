@@ -55,21 +55,13 @@ class CreateUserUseCase(BaseUseCase):
         async with self._uow:
             self._logger.set_correlation_id()
             self._logger.info("Starting user creation", name=dto.name, email=dto.email)
-            try:
-                # 1. Caso de uso orquestra a verificação de unicidade PRIMEIRO 
-                existing_user = await self._uow.user_repository.find_by_email(dto.email) 
-                if existing_user: 
-                    raise UserAlreadyExistsException(dto.email) 
+            try:               
+                # 1. Cria a entidade de domínio
+                user_to_create = User.create(name=dto.name, email=dto.email)
+
+                # 2. Orquestra a criação através do serviço de domínio
+                saved_user = await self._domain_service.create_user(user_to_create)
                 
-                # 2. Cria a entidade de domínio
-                user = User.create(name=dto.name, email=dto.email)
-
-                # 3. Executa apenas as regras de negócio puras do domínio
-                await self._domain_service.validate_business_rules(user)
-                self._logger.info("User validation passed", email=dto.email)
-
-                # 4. Salva o usuário
-                saved_user = await self._uow.user_repository.save(user)
                 await self._uow.commit()
                 self._logger.info(
                     "User created successfully",
@@ -80,21 +72,24 @@ class CreateUserUseCase(BaseUseCase):
                 return user_to_dto(saved_user)
             except UserValidationException as e:
                 self._logger.error(
-                    "User validation failed",
+                    "Domain validation failed during user creation",
                     email=dto.email,
                     validation_errors=e.validation_errors,
                 )
+                await self._uow.rollback()
                 raise
             except UserAlreadyExistsException as e:
                 self._logger.warning(
-                    "Attempted to create duplicate user", email=dto.email
+                    "Domain validation attempted to create duplicate user", email=dto.email
                 )
+                await self._uow.rollback()
                 raise
             except Exception as e:
                 self._logger.error(
                     "Domain error during user creation",
                     error=str(e),
                 )
+                await self._uow.rollback()
                 raise
 
 class ListUsersUseCase(BaseUseCase): 

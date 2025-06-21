@@ -38,27 +38,14 @@ class SQLUnitOfWork(UnitOfWork):
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if not self._session:
-            return 
-        try:
-            if exc_type is None:
-                await self._session.commit()
-            else:
-                await self._session.rollback()
-        except Exception as e:
-            self._logger.error(f"Error in transaction cleanup: {e}")
-            try:
-                await self._session.rollback()
-            except:
-                pass
-        finally:
-            try:
-                await self._session.close()
-                await self._session_context.__aexit__(exc_type, exc_val, exc_tb)
-                self._session = None
-                self._user_repository = None
-            except Exception as e:
-                self._logger.error(f"Error closing session: {e}")
+        # Delega TODA a lógica de saída para o gerenciador de sessão.
+        # O gerenciador já cuida do commit, rollback e fechamento.
+        if self._session_context:
+            await self._session_context.__aexit__(exc_type, exc_val, exc_tb)
+        # Limpa as referências
+        self._session = None
+        self._user_repository = None
+        self._session_context = None
 
     async def commit(self):
         if self._session:

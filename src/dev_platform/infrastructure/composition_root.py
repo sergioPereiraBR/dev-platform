@@ -101,12 +101,11 @@ class CompositionRoot:
 
     def __init__(
         self,
-        environment: str,
+        config: ConfigurationFacade,
         logger: Optional[ILogger] = None,
         validation_rule_provider: Optional[ValidationRuleProvider] = None
     ):
-        self._environment = environment
-        self._config = ConfigurationFacade()
+        self._config = config
         self._logger = logger or StructuredLogger()
         self._validation_rule_provider = validation_rule_provider or ValidationRuleProvider(self._config, self._logger)
 

@@ -7,7 +7,7 @@ Este módulo define comandos CLI para criar, listar, atualizar, obter e excluir 
 
 import asyncio
 import click
-import sys
+import sys, os
 from typing import Optional, List
 from dev_platform.infrastructure.config import ConfigurationFacade
 from dev_platform.application.user.dtos import UserCreateDTO, UserUpdateDTO, UserDTO
@@ -180,7 +180,15 @@ class UserCommands:
         
 # Instância única para a sessão da CLI
 logger = StructuredLogger()
-composition_root = CompositionRoot(environment="production", logger=logger) # Criada uma única vez
+#composition_root = CompositionRoot(environment="production", logger=logger) # Criada uma única vez
+
+# Ponto de entrada cria as dependências de infraestrutura
+def get_dependencies():
+    config = ConfigurationFacade(environment=os.getenv("ENVIRONMENT",
+    "production"), logger=logger)
+    composition_root = CompositionRoot(config=config, logger=logger)
+    return composition_root
+
 
 @click.group()
 def cli():
@@ -191,6 +199,7 @@ def cli():
 @click.option("--email", prompt="User email")
 def create_user(name: str, email: str):
     """Create a new user."""
+    composition_root = get_dependencies()
     commands: UserCommands = UserCommands(composition_root, logger)
 
     async def _run_create():
@@ -202,6 +211,7 @@ def create_user(name: str, email: str):
 @cli.command()
 def list_users():
     """List all users."""
+    composition_root = get_dependencies()
     commands: UserCommands = UserCommands(composition_root, logger)
 
     async def _run_list():
@@ -229,6 +239,7 @@ def list_users():
 )
 def update_user(user_id: int, name: str, email: str):
     """Update an existing user."""
+    composition_root = get_dependencies()
     commands: UserCommands = UserCommands(composition_root, logger)
 
     async def _run_update():
@@ -243,6 +254,7 @@ def update_user(user_id: int, name: str, email: str):
 @click.option("--user-id", type=int, prompt="User ID to retrieve")
 def get_user(user_id: int):
     """Get a user by ID."""
+    composition_root = get_dependencies()
     commands: UserCommands = UserCommands(composition_root, logger)
 
     async def _run_get():
@@ -255,6 +267,7 @@ def get_user(user_id: int):
 @click.option("--user-id", type=int, prompt="User ID to delete")
 def delete_user(user_id: int):
     """Delete a user by ID."""
+    composition_root = get_dependencies()
     commands: UserCommands = UserCommands(composition_root, logger)
 
     async def _run_delete():

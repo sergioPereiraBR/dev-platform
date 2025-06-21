@@ -178,12 +178,6 @@ class ConfigurationFacade:
         validator_factory: Callable para criar um ConfigValidator customizado (opcional)
         accessor_factory: Callable para criar um ConfigAccessor customizado (opcional)
     """
-    _instance: Optional["ConfigurationFacade"] = None
-
-    def __new__(cls, *args, **kwargs) -> "ConfigurationFacade":
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
 
     def __init__(
         self,

@@ -15,6 +15,7 @@ from dev_platform.domain.user.entities import User
 from dev_platform.domain.user.value_objects import UserName, Email
 from dev_platform.application.ports.logger import ILogger
 from dev_platform.domain.exceptions import (
+    DataIntegrityException,
     DatabaseException, 
 )
 from dev_platform.domain.user.user_exceptions import (
@@ -255,12 +256,27 @@ class RepositoryExceptionHandler:
     def handle_sqlalchemy_error(operation: str, error: SQLAlchemyError, **context):
         """Handle SQLAlchemy specific errors."""
         if isinstance(error, IntegrityError):
-            if (
-                "email" in str(error.orig).lower()
-                and "unique" in str(error.orig).lower()
-            ):
-                email = context.get("email", "unknown")
-                raise UserAlreadyExistsException(email)
+            #Acessa o erro original do driver DBAPI
+            dbapi_exception = error.orig
+
+            # Checa se o driver fornece o nome da constraint (ex: psycopg2, mysql-connector)
+            # A forma exata pode variar um pouco entre drivers, mas o princípio é o mesmo.
+            # Para PyMySQL/aiomysql, a análise do erro pode ser necessária.
+            # No entanto, a forma mais robusta é checar o código de erro do MySQL.
+            # Erro 1062 do MySQL é para entrada duplicada.
+
+            # Exemplo para MySQL (código de erro 1062)
+            if hasattr(dbapi_exception, 'errno') and dbapi_exception.errno == 1062:
+                error_msg = str(dbapi_exception)
+                if "'uq_users_email'" in error_msg: # Checa o nome da constraint
+                    email = context.get("email", "unknown")
+                    raise UserAlreadyExistsException(email) from error
+                else:
+                    # Outra violação de unicidade
+                    raise DataIntegrityException(
+                        constraint_name="unknown", # ou extrair o nome da constraint da msg
+                        details=error_msg, original_exception=error
+                    ) from error
 
         context_str = ", ".join([f"{k}={v}" for k, v in context.items()])
         error_msg = f"{operation} failed"

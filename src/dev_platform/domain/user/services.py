@@ -64,6 +64,25 @@ class UserDomainService:
 
     def __init__(self, validation_rules: List[ValidationRule]): 
         self._validation_rules = validation_rules 
+    
+    def __init__(self, user_repository: IUserRepository, validation_rules: List[ValidationRule]):
+        self._repository = user_repository
+        self._validation_rules = validation_rules
+
+    async def create_user(self, user: User) -> User:
+        """
+        Creates a new user, ensuring all domain rules, including
+        uniqueness, are met.
+        """
+        # 1. Verifica unicidade como parte da operação de criação
+        existing = await self._repository.find_by_email(user.email.value)
+        if existing:
+            raise UserAlreadyExistsException(user.email.value)
+        # 2. Valida outras regras de negócio
+        await self.validate_business_rules(user)
+        # 3. Persiste o usuário
+        saved_user = await self._repository.add(user)
+        return saved_user
 
     def add_validation_rule(self, rule: ValidationRule):
         """Add a custom validation rule."""
