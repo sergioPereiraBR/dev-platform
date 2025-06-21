@@ -41,9 +41,9 @@ class ValidationRuleProvider:
     Permite extensão sem modificar a CompositionRoot (OCP).
     Responsável por logging de configuração relacionado às regras.
     """
-    def __init__(self, config: Dict[str, Any], logger: ILogger):
-        self._config = ConfigurationFacade()
-        self._logger = logger
+    def __init__(self, config: ConfigurationFacade, logger: ILogger):
+        self._config: ConfigurationFacade = config
+        self._logger: ILogger = logger
 
     def get_rules(self, user_type: str = "default") -> List[ValidationRule]:
         """
@@ -101,12 +101,11 @@ class CompositionRoot:
 
     def __init__(
         self,
-        environment: str,
+        config: ConfigurationFacade,
         logger: Optional[ILogger] = None,
         validation_rule_provider: Optional[ValidationRuleProvider] = None
     ):
-        self._environment = environment
-        self._config = ConfigurationFacade()
+        self._config = config
         self._logger = logger or StructuredLogger()
         self._validation_rule_provider = validation_rule_provider or ValidationRuleProvider(self._config, self._logger)
 

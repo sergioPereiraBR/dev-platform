@@ -25,7 +25,3 @@ class UnitOfWork(ABC):
         """Exit the context of the unit of work."""
         raise NotImplementedError
 
-    @abstractmethod
-    async def commit(self):
-        """Commit the changes made during the unit of work."""
-        raise NotImplementedError

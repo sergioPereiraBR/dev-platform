@@ -47,10 +47,4 @@ class SQLUnitOfWork(UnitOfWork):
         self._user_repository = None
         self._session_context = None
 
-    async def commit(self):
-        if self._session:
-            await self._session.commit()
 
-    async def rollback(self):
-        if self._session:
-            await self._session.rollback()
