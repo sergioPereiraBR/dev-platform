@@ -58,8 +58,8 @@ class UserUpdateDTO(BaseModel):
     """
     Data Transfer Object for updating an existing User.
     """
-    name: StrictStr
-    email: EmailStr
+    name: Optional[StrictStr] = None
+    email: Optional[EmailStr] = None
 
     @field_validator("name", mode="before")
     def validate_name(cls, v):
