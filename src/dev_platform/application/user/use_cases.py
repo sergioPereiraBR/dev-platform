@@ -77,26 +77,18 @@ class CreateUserUseCase(BaseUseCase):
                     email=saved_user.email.value if hasattr(saved_user.email, "value") else saved_user.email,
                 )
                 return user_to_dto(saved_user)
-            except UserValidationException as e:
-                self._logger.error(
-                    "Domain validation failed during user creation",
-                    email=dto.email,
-                    validation_errors=e.validation_errors,
-                )
-                await self._uow.rollback()
-                raise
             except UserAlreadyExistsException as e:
-                self._logger.warning(
-                    "Domain validation attempted to create duplicate user", email=dto.email
-                )
                 await self._uow.rollback()
+                self._logger.warning(
+                    "Validação de domínio tentou criar usuário duplicado", email=dto.email
+                )
                 raise
             except Exception as e:
+                await self._uow.rollback()
                 self._logger.error(
                     "Domain error during user creation",
                     error=str(e),
                 )
-                await self._uow.rollback()
                 raise
 
 class ListUsersUseCase(BaseUseCase): 

@@ -241,7 +241,15 @@ class ConfigurationFacade:
     
     def get_list(self, key: str, default: Optional[List[str]] = None) -> List[str]:
         """Obtém um valor de configuração como uma lista de strings a partir de um valor separado por vírgulas."""
-        return self._accessor.get_list(key, default)
+        value = self.get(key, None)
+        if value is None:
+            return default if default is not None else []
+        if isinstance(value, list):
+            return value
+        if not isinstance(value, str) or not value.strip():
+            return []
+        return [item.strip() for item in value.split(',') if item.strip()]
+        # return self._accessor.get_list(key, default)
 
 
     def get_all_config(self) -> Dict[str, Any]:

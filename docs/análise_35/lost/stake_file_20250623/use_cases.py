@@ -135,15 +135,12 @@ class UpdateUserUseCase(BaseUseCase):
                     self._logger.error("User not found for update", user_id=user_id)
                     raise UserNotFoundException(str(user_id))
                 
-                # 2. Lógica de atualização parcial (responsabilidade do caso de uso)
+                # Lógica de atualização parcial (responsabilidade do caso de uso)
                 new_name = dto.name if dto.name is not None else existing_user.name.value
                 new_email = dto.email if dto.email is not None else existing_user.email.value
-
-                # 3. Lógica de negócio e validação
                 updated_user = existing_user.update_details(new_name, new_email)
-                await self._domain_service.validate_user_update(existing_user, updated_user) # Usa a versão melhorada do serviço
 
-                # 4. Persistência
+                # Persistência
                 saved_user = await self._uow.user_repository.update(updated_user)
                 await self._uow.commit()
                 saved_user_dto = user_to_dto(saved_user)

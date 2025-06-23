@@ -76,8 +76,9 @@ class SQLUserRepository(IUserRepository):
             if not db_user:
                 raise UserNotFoundException(str(user.id))
 
-            db_user.name = user.name.value
-            db_user.email = user.email.value
+            await self._session.merge(
+                UserModel(id=user.id, name=user.name.value, email=user.email.value)
+            )
             await self._session.flush()
             return user
         except SQLAlchemyError as e:

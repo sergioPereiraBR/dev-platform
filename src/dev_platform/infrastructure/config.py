@@ -13,6 +13,7 @@ from dev_platform.domain.exceptions import ConfigurationException
 from dev_platform.application.ports.logger import ILogger
 from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
 
+
 class EnvLoader:
     """
     Responsável por carregar variáveis de ambiente de arquivos .env.
@@ -39,6 +40,7 @@ class EnvLoader:
                 self.logger.info(
                     f"AVISO: Arquivo .env.{self.environment} não encontrado em {full_dotenv_path}. Algumas variáveis de ambiente podem não estar definidas."
                 )
+
 
 class JsonConfigLoader:
     """
@@ -76,6 +78,7 @@ class JsonConfigLoader:
             )
         return config
 
+
 class ConfigValidator:
     """
     Responsável por validar configurações críticas.
@@ -99,6 +102,7 @@ class ConfigValidator:
                     reason="DATABASE_URL must be set in production environment."
                 )
 
+
 class DatabaseDriverChecker:
     """
     Responsável por garantir o uso de drivers assíncronos na URL do banco de dados.
@@ -115,6 +119,7 @@ class DatabaseDriverChecker:
         elif url.startswith("sqlite:///"):
             return url.replace("sqlite:///", "sqlite+aiosqlite:///")
         return url
+
 
 class ConfigAccessor:
     """
@@ -161,16 +166,13 @@ class ConfigAccessor:
     def get_list(self, key: str, default: Optional[List[str]] = None) -> List[str]:
         """Obtém um valor de configuração como uma lista de strings a partir de um valor separado por vírgulas."""
         value = self.get(key, None)  # Usando get() para pegar o valor bruto
-        
         if value is None:
             return default if default is not None else []
         if isinstance(value, list):
             return value
         if not isinstance(value, str) or not value.strip():
             return []
-
         return [item.strip() for item in value.split(',') if item.strip()]
-
 
     def get_all_config(self) -> Dict[str, Any]:
         """
@@ -180,6 +182,7 @@ class ConfigAccessor:
         for env_key, env_value in os.environ.items():
             all_configs[env_key.lower().replace(".", "_")] = env_value
         return all_configs
+
 
 class ConfigurationFacade:
     """

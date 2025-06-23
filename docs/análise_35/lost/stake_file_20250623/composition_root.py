@@ -36,60 +36,53 @@ from dev_platform.domain.validation_rules import ValidationRule
 
 
 class ValidationRuleProvider:
-    """
-    Provider para regras de validação de usuários.
-    Permite extensão sem modificar a CompositionRoot (OCP).
-    Responsável por logging de configuração relacionado às regras.
-    """
-    def __init__(self, config: ConfigurationFacade, logger: ILogger):
-        self._config: ConfigurationFacade = config
-        self._logger: ILogger = logger
-
-    def get_rules(self, user_type: str = "default") -> List[ValidationRule]:
-        """
-        Retorna a lista de regras de validação conforme o tipo de usuário.
-        """
-        if user_type == "enterprise":
-            return self._enterprise_rules()
-        return self._default_rules()
+    """Provider para regras de validação, desacoplado da infraestrutura."""
+    def __init__(
+        self,
+        default_allowed_domains: List[str],
+        default_forbidden_words: List[str],
+        enterprise_allowed_domains: List[str],
+        enterprise_forbidden_words: List[str],
+        enable_profanity_filter: bool,
+        logger: ILogger
+    ):
+        self._default_allowed_domains = default_allowed_domains
+        self._default_forbidden_words = default_forbidden_words
+        self._enterprise_allowed_domains = enterprise_allowed_domains
+        self._enterprise_forbidden_words = enterprise_forbidden_words
+        self._enable_profanity_filter = enable_profanity_filter
+        self._logger = logger
 
     def _default_rules(self) -> List[ValidationRule]:
-        allowed_domains = self._parse_csv("allowed_domains")
-        forbidden_words = self._parse_csv("validation_forbidden_words")
-        validation_config = self._config.get("validation", {})
-
-        if validation_config.get("enable_profanity_filter", False) and not forbidden_words:
-            self._logger.warning("Profanity filter enabled, but forbidden words list is empty in configuration.")
-
+        """
+        Regras de validação padrão para usuários comuns.
+        Essas regras são aplicadas a todos os usuários, exceto os enterprise.
+        """
         return [
             EmailFormatAdvancedValidationRule(),
             NameContentValidationRule(),
-            EmailDomainValidationRule(allowed_domains),
-            BusinessHoursValidationRule(validation_config.get("business_hours_only", False)),
-            NameProfanityValidationRule(forbidden_words=forbidden_words),
-            ForbiddenWordsValidationRule(forbidden_words=forbidden_words)
+            EmailDomainValidationRule(self._default_allowed_domains),
+            NameProfanityValidationRule(forbidden_words=self._default_forbidden_words)
         ]
 
     def _enterprise_rules(self) -> List[ValidationRule]:
-        validation_forbidden_words = self._parse_csv("validation_forbidden_words")
-        enterprise_forbidden_words = self._parse_csv("enterprise_forbidden_words")
-        enterprise_allowed_domains = self._parse_csv("enterprise_allowed_domains")
+        """
+        Regras de validação específicas para usuários enterprise.
+        Permite maior controle e customização para clientes corporativos.
+        """
+        if self._enable_profanity_filter and not self._enterprise_forbidden_words:
+            self._logger.warning("Profanity filter enabled for enterprise, but forbidden words list is empty.")
 
-        if not enterprise_forbidden_words:
-            self._logger.warning("Enterprise forbidden words list is empty in configuration.")
-
-        return [
-            ForbiddenWordsValidationRule(validation_forbidden_words),
-            NameProfanityValidationRule(enterprise_forbidden_words),
-            EmailDomainValidationRule(enterprise_allowed_domains),
-            BusinessHoursValidationRule(True),
+        rules: List[ValidationRule] = [
+            EmailFormatAdvancedValidationRule(),
+            NameContentValidationRule(),
+            EmailDomainValidationRule(self._enterprise_allowed_domains),
+            NameProfanityValidationRule(forbidden_words=self._enterprise_forbidden_words),
+            # Regras extras para enterprise:
+            ForbiddenWordsValidationRule(forbidden_words=self._enterprise_forbidden_words),
+            BusinessHoursValidationRule(True),  # Exemplo: só permitir operações em horário comercial
         ]
-
-    def _parse_csv(self, key: str) -> List[str]:
-        value = self._config.get(key)
-        if not value:
-            return []
-        return [w.strip() for w in value.split(",") if w.strip()]
+        return rules
 
 
 class CompositionRoot:
@@ -103,12 +96,19 @@ class CompositionRoot:
         self,
         config: ConfigurationFacade,
         logger: Optional[ILogger] = None,
-        validation_rule_provider: Optional[ValidationRuleProvider] = None
     ):
         self._config = config
         self._logger = logger or StructuredLogger()
-        self._validation_rule_provider = validation_rule_provider or ValidationRuleProvider(self._config, self._logger)
-
+        # A CompositionRoot solicita os dados já formatados para a facade de configuração.
+        self._validation_rule_provider = ValidationRuleProvider(
+            default_allowed_domains=self._config.get_list("allowed_domains"),
+            default_forbidden_words=self._config.get_list("validation_forbidden_words"),
+            enterprise_allowed_domains=self._config.get_list("enterprise_allowed_domains"),
+            enterprise_forbidden_words=self._config.get_list("enterprise_forbidden_words"),
+            enable_profanity_filter=self._config.get_typed("validation_enable_profanity_filter", False, bool),
+            logger=self._logger
+        )
+    
     def create_user_use_case(self, uow: SQLUnitOfWork, user_repository: IUserRepository) -> CreateUserUseCase:
         return CreateUserUseCase(
             uow=uow,
@@ -116,8 +116,11 @@ class CompositionRoot:
             logger=self._logger,
         )
 
-    def list_users_use_case(self, uow: SQLUnitOfWork) -> ListUsersUseCase:
-        return ListUsersUseCase(uow=uow, logger=self._logger)
+    def list_users_use_case(self, uow: SQLUnitOfWork, user_repository: IUserRepository) -> ListUsersUseCase:
+        return ListUsersUseCase(
+            uow=uow,
+            logger=self._logger
+        )
 
     def update_user_use_case(self, uow: SQLUnitOfWork, user_repository: IUserRepository) -> UpdateUserUseCase:
         return UpdateUserUseCase(

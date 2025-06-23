@@ -54,8 +54,10 @@ class ValidationRuleProvider:
         self._logger = logger
 
     def _default_rules(self) -> List[ValidationRule]:
-        if self._enable_profanity_filter and not self._default_forbidden_words:
-            self._logger.warning("Profanity filter enabled, but forbidden words list is empty.")
+        """
+        Regras de validação padrão para usuários comuns.
+        Essas regras são aplicadas a todos os usuários, exceto os enterprise.
+        """
         return [
             EmailFormatAdvancedValidationRule(),
             NameContentValidationRule(),
@@ -97,7 +99,7 @@ class CompositionRoot:
     ):
         self._config = config
         self._logger = logger or StructuredLogger()
-        # A CompositionRoot agora apenas solicita os dados já formatados para a facade de configuração.
+        # A CompositionRoot solicita os dados já formatados para a facade de configuração.
         self._validation_rule_provider = ValidationRuleProvider(
             default_allowed_domains=self._config.get_list("allowed_domains"),
             default_forbidden_words=self._config.get_list("validation_forbidden_words"),
