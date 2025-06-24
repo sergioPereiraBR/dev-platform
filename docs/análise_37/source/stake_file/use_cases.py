@@ -15,18 +15,11 @@ from dev_platform.domain.exceptions import DatabaseException
 from dev_platform.domain.user.user_exceptions import (
     UserValidationException,
     UserAlreadyExistsException,
-    UserNotFoundException,
-    EmailDomainNotAllowedException,
+    UserNotFoundException
 )
-from dev_platform.domain.user.services import UserDomainService, UserUniquenessService
-from dev_platform.domain.validation_rules import (
-    EmailFormatAdvancedValidationRule,
-    NameContentValidationRule,
-    EmailDomainValidationRule,
-    BusinessHoursValidationRule,
-)
+from dev_platform.domain.user.services import UserDomainService, UserUniquenessService, UserValidatorService
 
-# Helper function for entity to DTO conversion
+# Função Helper para vonversão do entity para DTO
 def user_to_dto(user: User) -> UserDTO:
     return UserDTO(
         id=str(user.id),
@@ -41,37 +34,30 @@ class BaseUseCase:
         self._logger = logger
 
 class CreateUserUseCase(BaseUseCase):
-    """Use case for creating a new user."""
+    """Caso de uso para criar um novo usuário."""
     def __init__(
         self,
-        uow: UnitOfWork,
+        uow: UnitOfWork, 
         logger: ILogger,
-        domain_service: UserDomainService,
+        user_validator: UserValidatorService,
+        user_uniqueness_service: UserUniquenessService,
     ):
         super().__init__(uow, logger)
-        self._domain_service = domain_service
+        self._user_validator = user_validator
+        self._user_uniqueness_service = user_uniqueness_service
 
     async def execute(self, dto: UserCreateDTO) -> UserDTO:
         async with self._uow:
-            self._logger.info("Starting user creation", name=dto.name, email=dto.email)
+            self._logger.info("Iniciando criação de usuário", name=dto.name, email=dto.email)
             try:               
-                # 1. Orquestração: Verificar unicidade primeiro
-                existing = await self._uow.user_repository.find_by_email(dto.email)
-                if existing:
-                    raise UserAlreadyExistsException(dto.email)
-                
-                # 2. Criar a entidade de domínio
+                await self._user_uniqueness_service.ensure_email_is_unique(dto.email)
                 user_to_create = User.create(name=dto.name, email=dto.email)
+                await self._user_validator.validate(user_to_create)
 
-                # 3. Chamar o serviço de domínio apenas para validação
-                await self._domain_service.validate_business_rules(user_to_create)
-
-                # 4. Persistir a entidade
                 saved_user = await self._uow.user_repository.add(user_to_create)
-                
                 await self._uow.commit()
                 self._logger.info(
-                    "User created successfully",
+                    "Usuário criado com sucesso",
                     user_id=saved_user.id,
                     name=saved_user.name.value if hasattr(saved_user.name, "value") else saved_user.name,
                     email=saved_user.email.value if hasattr(saved_user.email, "value") else saved_user.email,
@@ -83,10 +69,16 @@ class CreateUserUseCase(BaseUseCase):
                     "Validação de domínio tentou criar usuário duplicado", email=dto.email
                 )
                 raise
+            except UserValidationException as e:
+                await self._uow.rollback()
+                self._logger.warning(
+					"Validação de regras de negócio falhou", validation_errors=e.validation_errors
+				)
+                raise
             except Exception as e:
                 await self._uow.rollback()
                 self._logger.error(
-                    "Domain error during user creation",
+                    "Erro durante a criação do usuário",
                     error=str(e),
                 )
                 raise
@@ -127,12 +119,10 @@ class UpdateUserUseCase(BaseUseCase):
                     self._logger.error("User not found for update", user_id=user_id)
                     raise UserNotFoundException(str(user_id))
                 
-                # Lógica de atualização parcial (responsabilidade do caso de uso)
                 new_name = dto.name if dto.name is not None else existing_user.name.value
                 new_email = dto.email if dto.email is not None else existing_user.email.value
                 updated_user = existing_user.update_details(new_name, new_email)
 
-                # Persistência
                 saved_user = await self._uow.user_repository.update(updated_user)
                 await self._uow.commit()
                 saved_user_dto = user_to_dto(saved_user)

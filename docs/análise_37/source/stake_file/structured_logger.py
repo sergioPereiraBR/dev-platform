@@ -11,16 +11,16 @@ from typing import Optional
 import os
 from uuid import uuid4
 from loguru import logger
-# from dev_platform.infrastructure.config import CONFIG
+from dev_platform.infrastructure.config import ConfigurationFacade
 from dev_platform.application.ports.logger import ILogger
 
 
 class StructuredLogger(ILogger):
     """Logger estruturado usando Loguru com suporte a níveis dinâmicos e correlação de logs."""
 
-    def __init__(self, name: str = "DEV Platform", CONFIG__: Optional[object] = None):
+    def __init__(self, name: str = "DEV Platform", config: Optional[ConfigurationFacade] = None):
         self._name = name
-        self._CONFIG__ = CONFIG__ or {}
+        self._config = config
         self._configure_logger()
 
     def _configure_logger(self):
@@ -29,8 +29,9 @@ class StructuredLogger(ILogger):
         logger.remove()
 
         # Obter nível de log com base no ambiente
-        environment = self._CONFIG__.get("environment", "production")
-        log_level = self._CONFIG__.get("logging_level", "INFO").upper()
+        # Usa a configuração injetada
+        environment = self._config.get("environment", "production") if self._config else "production"
+        log_level = self._config.get("logging_level", "INFO").upper() if self._config else "INFO"
         log_levels = {"development": "DEBUG", "test": "DEBUG", "production": "INFO"}
         default_level = log_levels.get(environment, "INFO")
         final_level = (

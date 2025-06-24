@@ -11,7 +11,6 @@ from typing import List, Dict, Any, Optional, Callable, Type
 from dotenv import load_dotenv
 from dev_platform.domain.exceptions import ConfigurationException
 from dev_platform.application.ports.logger import ILogger
-from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
 
 
 class EnvLoader:
@@ -20,7 +19,7 @@ class EnvLoader:
     """
     def __init__(self, environment: str, logger: ILogger):
         self.environment = environment
-        self.logger = logger
+        self._logger: ILogger = logger
 
     def load(self) -> None:
         """
@@ -33,11 +32,11 @@ class EnvLoader:
             load_dotenv(dotenv_path=full_dotenv_path, override=True)
         else:
             if self.environment == "production":
-                self.logger.info(
+                self._logger.info(
                     f"Arquivo .env.{self.environment} não encontrado em {full_dotenv_path}. Assumindo que as variáveis de ambiente são configuradas externamente."
                 )
             else:
-                self.logger.info(
+                self._logger.info(
                     f"AVISO: Arquivo .env.{self.environment} não encontrado em {full_dotenv_path}. Algumas variáveis de ambiente podem não estar definidas."
                 )
 
@@ -48,7 +47,7 @@ class JsonConfigLoader:
     """
     def __init__(self, environment: str, logger: ILogger):
         self.environment = environment
-        self.logger = logger
+        self._logger:ILogger = logger
 
     def load(self) -> Dict[str, Any]:
         """
@@ -63,7 +62,7 @@ class JsonConfigLoader:
                 with open(full_config_file_path, "r") as f:
                     config = json.load(f)
             except Exception as e:
-                self.logger.error(
+                self._logger.error(
                     "Erro ao carregar o arquivo de configuração.",
                     config_key="CONFIG_FILE_LOAD_ERROR"
                 )
@@ -72,7 +71,7 @@ class JsonConfigLoader:
                     reason=f"Erro ao carregar o arquivo de configuração {full_config_file_path}: {e}"
                 )
         else:
-            self.logger.info(
+            self._logger.info(
                 f"Arquivo de {full_config_file_path} não encontrado. Usando apenas variáveis de ambiente e padrões.",
                 config_key="CONFIG_FILE_NOT_FOUND"
             )
@@ -83,9 +82,9 @@ class ConfigValidator:
     """
     Responsável por validar configurações críticas.
     """
-    def __init__(self, environment: str, logger: ILogger):
+    def __init__(self, environment: str, logger:ILogger):
         self.environment = environment
-        self.logger = logger
+        self._logger:ILogger = logger
 
     def validate(self) -> None:
         """
@@ -93,7 +92,7 @@ class ConfigValidator:
         """
         if self.environment == "production":
             if not os.getenv("DATABASE_URL"):
-                self.logger.error(
+                self._logger.error(
                     "DATABASE_URL não configurada para produção.",
                     config_key="DATABASE_URL"
                 )
@@ -125,9 +124,9 @@ class ConfigAccessor:
     """
     Responsável por acessar valores de configuração.
     """
-    def __init__(self, config: Dict[str, Any], logger: ILogger):
+    def __init__(self, config: Dict[str, Any], logger:ILogger):
         self._config = config
-        self._logger = logger
+        self._logger: ILogger = logger
 
     def get(self, key: str, default: Any = None) -> Any:
         """
@@ -210,8 +209,13 @@ class ConfigurationFacade:
         """
         if hasattr(self, "_initialized") and self._initialized:
             return
-        self._logger: ILogger = logger or StructuredLogger()
         self._environment: str = environment or os.getenv("ENVIRONMENT", "production")
+
+        if logger is not None:
+            self._logger: ILogger = logger
+        else:
+            from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
+            self._logger: ILogger = StructuredLogger()
 
         # Permite injeção de dependências para facilitar testes/mocks
         env_loader: EnvLoader = (env_loader_factory or EnvLoader)(self._environment, self._logger)

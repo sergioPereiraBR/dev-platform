@@ -8,7 +8,6 @@ respeitando OCP e separando logging de infraestrutura.
 """
 
 from typing import Any, Dict, List, Optional
-from dev_platform.infrastructure.config import ConfigurationFacade
 from dev_platform.application.user.use_cases import (
     CreateUserUseCase,
     ListUsersUseCase,
@@ -16,12 +15,11 @@ from dev_platform.application.user.use_cases import (
     GetUserUseCase,
     DeleteUserUseCase,
 )
-from dev_platform.domain.user.interfaces import IUserRepository
-from dev_platform.infrastructure.database.unit_of_work import SQLUnitOfWork
-from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
 from dev_platform.domain.user.services import (
     UserDomainService,
     UserAnalyticsService,
+    UserUniquenessService,
+    UserValidatorService
 )
 from dev_platform.domain.validation_rules import (
     EmailFormatAdvancedValidationRule,
@@ -31,8 +29,16 @@ from dev_platform.domain.validation_rules import (
     NameProfanityValidationRule,
     ForbiddenWordsValidationRule
 )
+
+from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
+from dev_platform.infrastructure.config import ConfigurationFacade
 from dev_platform.application.ports.logger import ILogger
 from dev_platform.domain.validation_rules import ValidationRule
+
+from dev_platform.application.user.ports import UnitOfWork # Importa a interface
+from dev_platform.domain.user.interfaces import IUserRepository # Importa a interface
+from dev_platform.infrastructure.database.unit_of_work import SQLUnitOfWork # Ainda precisa da implementação concreta para instanciar
+from dev_platform.infrastructure.database.repositories import SQLUserRepository # Ainda precisa da implementação concreta para instanciar
 
 
 class ValidationRuleProvider:
@@ -64,6 +70,14 @@ class ValidationRuleProvider:
             EmailDomainValidationRule(self._default_allowed_domains),
             NameProfanityValidationRule(forbidden_words=self._default_forbidden_words)
         ]
+    
+    def get_rules(self, user_type: str = "default") -> List[ValidationRule]:
+        """
+        Retorna a lista de regras de validação conforme o tipo de usuário.
+        """
+        if user_type == "enterprise":
+            return self._enterprise_rules()
+        return self._default_rules()
 
     def _enterprise_rules(self) -> List[ValidationRule]:
         """
@@ -94,11 +108,11 @@ class CompositionRoot:
 
     def __init__(
         self,
-        config: ConfigurationFacade,
-        logger: Optional[ILogger] = None,
+        config: ConfigurationFacade, # Configuração injetada
+		logger: ILogger, # Logger injetado
     ):
         self._config = config
-        self._logger = logger or StructuredLogger()
+        self._logger = logger
         # A CompositionRoot solicita os dados já formatados para a facade de configuração.
         self._validation_rule_provider = ValidationRuleProvider(
             default_allowed_domains=self._config.get_list("allowed_domains"),
@@ -109,12 +123,21 @@ class CompositionRoot:
             logger=self._logger
         )
     
-    def create_user_use_case(self, uow: SQLUnitOfWork, user_repository: IUserRepository) -> CreateUserUseCase:
+    def create_user_use_case(self, uow: UnitOfWork, user_repository: IUserRepository) -> CreateUserUseCase:
+        # O domain_service deve receber apenas o que ele precisa para as regras de domínio.
         return CreateUserUseCase(
             uow=uow,
-            domain_service=self.user_domain_service(user_repository),
+            domain_service=self.user_domain_service(),
+            user_uniqueness_service=self.user_uniqueness_service(user_repository),
             logger=self._logger,
         )
+    
+    # Novo método para criar o UoW, que encapsula a criação do repositório concreto
+    def create_unit_of_work(self) -> UnitOfWork:
+        # O SQLUnitOfWork agora recebe o repositório via injeção ou uma factory
+        # Para simplificar, vamos injetar o logger e o repositório aqui
+        user_repo = SQLUserRepository(session=None, logger=self._logger) # A sessão será injetada pelo UoW
+        return SQLUnitOfWork(logger=self._logger, user_repository=user_repo) # Passa o repositório concreto
 
     def list_users_use_case(self, uow: SQLUnitOfWork, user_repository: IUserRepository) -> ListUsersUseCase:
         return ListUsersUseCase(
@@ -143,12 +166,18 @@ class CompositionRoot:
             logger=self._logger,
         )
 
-    def user_domain_service(self, user_repository: IUserRepository, user_type: str = "default") -> UserDomainService:
+    def user_domain_service(self, user_type: str = "default") -> UserValidatorService:
         """
-        Cria UserDomainService com regras de validação baseadas em configuração e tipo de usuário.
+        Cria UserValidatorService com regras de validação baseadas em configuração e tipo de usuário.
         """
         rules = self._validation_rule_provider.get_rules(user_type)
-        return UserDomainService(user_repository, rules)
+        return UserValidatorService(validation_rules=rules)
+    
+    def user_uniqueness_service(self, user_repository: IUserRepository) -> UserUniquenessService:
+        """
+		Cria UserUniquenessService, que depende do repositório.
+		"""
+        return UserUniquenessService(user_repository)
 
     def user_analytics_service(self, user_repository: IUserRepository) -> UserAnalyticsService:
         """

@@ -1,14 +1,14 @@
 # ./src/dev_platform/domain/validation_rules.py
 # -*- coding: utf-8 -*-
 """
-Este módulo define regras de validação reutilizáveis para entidades de usuário.
+Este módulo contém regras de validação para diversas operações no domínio de usuários.
 """
-
 from abc import ABC, abstractmethod
 from typing import Optional, List, Set
 import re
 from datetime import datetime
 from dev_platform.domain.user.entities import User
+
 
 class ValidationRule(ABC):
     """Base class for validation rules."""
@@ -25,6 +25,7 @@ class ValidationRule(ABC):
     @abstractmethod
     def rule_name(self) -> str:
         pass
+
 
 class EmailFormatAdvancedValidationRule(ValidationRule):
     """Advanced email format validation beyond basic regex."""
@@ -59,6 +60,7 @@ class EmailFormatAdvancedValidationRule(ValidationRule):
     @property
     def rule_name(self) -> str:
         return "email_format_advanced_validation"
+
 
 class NameContentValidationRule(ValidationRule):
     """Validates name content and format."""
@@ -100,6 +102,7 @@ class NameContentValidationRule(ValidationRule):
     def rule_name(self) -> str:
         return "name_content_validation"
 
+
 class EmailDomainValidationRule(ValidationRule):
     """Validates that email domain is in allowed list."""
 
@@ -115,6 +118,7 @@ class EmailDomainValidationRule(ValidationRule):
     @property
     def rule_name(self) -> str:
         return "email_domain_validation"
+
 
 class ForbiddenWordsValidationRule(ValidationRule):
     """
@@ -133,6 +137,7 @@ class ForbiddenWordsValidationRule(ValidationRule):
     @property
     def rule_name(self) -> str:
         return "forbidden_words_validation"
+
 
 class NameProfanityValidationRule(ValidationRule):
     """
@@ -153,25 +158,58 @@ class NameProfanityValidationRule(ValidationRule):
     def rule_name(self) -> str:
         return "name_profanity_validation"
 
-class BusinessHoursValidationRule(ValidationRule):
-    """Validates if operation is within business hours."""
 
-    def __init__(self, business_hours_only: bool = False):
+class IDateTimeProvider(ABC):
+    @abstractmethod
+    def now(self) -> datetime:
+        pass
+
+class SystemDateTimeProvider(IDateTimeProvider):
+    def now(self) -> datetime:
+        return datetime.now()
+
+class BusinessHoursValidationRule(ValidationRule):
+    """
+    Regra de validação para verificar se uma operação está dentro do horário comercial permitido.
+
+    Verifica o dia da semana (apenas dias úteis) e as horas (9 AM - 5 PM).
+
+    Exemplo de uso:
+        rule = BusinessHoursValidationRule(business_hours_only=True) # Usa o provedor padrão
+        rule_test = BusinessHoursValidationRule(business_hours_only=True, datetime_provider=MockDateTimeProvider(specific_time))
+    """
+    def __init__(self, business_hours_only: bool = False, datetime_provider: IDateTimeProvider = None):
+        """
+        Inicializa a regra de validação de horário comercial.
+
+        Args:
+            business_hours_only (bool): Se True, a validação de horário comercial será aplicada.
+                                        Caso contrário, a regra será ignorada.
+            datetime_provider (IDateTimeProvider, optional): Provedor de data/hora para testabilidade.
+                                                             Usa SystemDateTimeProvider por padrão.
+        """
         self.business_hours_only = business_hours_only
+        self.datetime_provider = datetime_provider if datetime_provider is not None else SystemDateTimeProvider()
 
     async def validate(self, user: User) -> Optional[str]:
+        """
+        Valida se o registro do usuário está dentro do horário comercial permitido.
+
+        Args:
+            user (User): O objeto do usuário a ser validado.
+
+        Returns:
+            Optional[str]: Uma mensagem de erro se a validação falhar, None caso contrário.
+        """
         if not self.business_hours_only:
             return None
-
-        now = datetime.now()
+        now = self.datetime_provider.now() # Alteração: usando o provedor injetado
         if now.weekday() >= 5:
             return "User registration only allowed during business days"
-
         if now.hour < 9 or now.hour >= 17:
             return "User registration only allowed during business hours (9 AM - 5 PM)"
-
         return None
-
+    
     @property
     def rule_name(self) -> str:
         return "business_hours_validation"
