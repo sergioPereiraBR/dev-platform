@@ -44,9 +44,8 @@ class DatabaseSessionManager:
         self._sync_engine: Optional[Engine] = None
         self._async_session_factory: Optional[async_sessionmaker] = None
         self._sync_session_factory: Optional[sessionmaker] = None
-        self.config = config
+        self.config = config or ConfigurationFacade()
         self._initialize_engines()
-        self.config = ConfigurationFacade()
 
     def _initialize_engines(self):
         """Inicializa os engines síncronos e assíncronos."""
@@ -60,7 +59,9 @@ class DatabaseSessionManager:
         # Engine assíncrono
         async_url = self.config.get("database_url")
         self._async_engine = create_async_engine(
-            async_url, echo = self.config.get("database_echo", False), **pool_config
+            async_url,
+            echo=self.config.get("database_echo", False),
+            **pool_config
         )
 
         # Session factory assíncrona
@@ -128,8 +129,7 @@ class DatabaseSessionManager:
 
 
 # Instância global do gerenciador de sessões
-config = ConfigurationFacade()
-db_manager = DatabaseSessionManager(config=config)
+db_manager = DatabaseSessionManager(config=ConfigurationFacade())
 
 # Funções de conveniência para compatibilidade
 async def get_async_session():

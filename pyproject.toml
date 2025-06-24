@@ -77,13 +77,13 @@ docs-serve-live-port = "poetry run mkdocs serve --livereload --dev-addr 0.0.0.0:
 # Tarefas para gerenciamento de usuários - testes e desenvolvimento
 list = "poetry run python ./src/dev_platform/main.py user list-users"
 list_debug = "poetry run python -m debugpy --listen 5678 --wait-for-client ./src/dev_platform/main.py user list-users"
-create = "poetry run python ./src/dev_platform/main.py user create-user --name 'Sergio Pereira' --email 'sergiopereira.br@hotmail.com'"
+create = "poetry run python ./src/dev_platform/main.py user create-user --name \"Sergio da Silva Pereira\" --email sergio.hertz@gmail.com"
 delete = "poetry run python ./src/dev_platform/main.py user delete-user --email 'sergiopereira.br@hotmail.com'"
 update = "poetry run python ./src/dev_platform/main.py user update-user --email 'sergiopereira.br@hotmail.com' --name 'Sergio P.'"
 
 # Tarefas gerenciamento de usuários
 list_users = "poetry run python ./src/dev_platform/main.py user list-users"
-create_user = "poetry run python ./src/dev_platform/main.py user create-user --name 'Sergio Pereira' --email 'sergiopereira.br@hotmail.com'"
+create_user = "poetry run python ./src/dev_platform/main.py user create-user --name 'Sergio da Silva Pereira' --email 'sergio.hertz@gmail.com'"
 delete_user = "poetry run python ./src/dev_platform/main.py user delete-user --email 'sergiopereira.br@hotmail.com'"
 update_user = "poetry run python ./src/dev_platform/main.py user update-user --email 'sergiopereira.br@hotmail.com' --name 'Sergio P.'"
 

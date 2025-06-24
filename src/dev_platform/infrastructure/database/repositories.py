@@ -23,15 +23,14 @@ from dev_platform.domain.user.user_exceptions import (
     UserNotFoundException
 )
 from dev_platform.infrastructure.database.models import UserModel
-from dev_platform.infrastructure.config import ConfigurationFacade
-from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
+from dev_platform.application.ports.logger import ILogger
 
 
 class SQLUserRepository(IUserRepository):
     """SQLAlchemy implementation of the IUserRepository interface."""
-    def __init__(self, session: AsyncSession, logger: Optional[ILogger]):
+    def __init__(self, session: AsyncSession, logger: ILogger):
         self._session = session
-        self._logger: ILogger = logger or StructuredLogger(CONFIG__=ConfigurationFacade())
+        self._logger: ILogger = logger
 
     def _convert_to_domain_user(self, db_user: UserModel) -> User:
         """Convert database model to domain entity."""

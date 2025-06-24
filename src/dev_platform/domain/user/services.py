@@ -39,8 +39,26 @@ class ValidationRule(ABC):
     def rule_name(self) -> str:
         pass
 
-# --- Serviço de domínio focado apenas na lógica de negócio ---
+class UserValidatorService: # Novo serviço focado em validação de regras de negócio
+	def __init__(self, validation_rules: List):
+		self._validation_rules = validation_rules
 
+	async def validate(self, user: User) -> None: # Método principal de validação
+		validation_errors = {}
+		for rule in self._validation_rules:
+			error_message = await rule.validate(user)
+			if error_message:
+				validation_errors[rule.rule_name] = error_message
+		if validation_errors:
+			raise UserValidationException(validation_errors)
+
+	# Métodos como validate_user_update, validate_user_creation_constraints,
+	# validate_business_domain_rules (se forem puramente de validação de regras)
+	# seriam movidos para cá ou para regras de validação específicas.
+	# Métodos de gerenciamento de regras (add/remove/summary) seriam movidos para ValidationRuleProvider ou um Registry.
+
+# --- Serviço de domínio focado apenas na lógica de negócio ---
+# UserDomainService seria renomeado ou refatorado para UserValidatorService
 class UserUniquenessService:
     """Service focused on uniqueness validation."""
 
@@ -56,29 +74,15 @@ class UserUniquenessService:
         ):
             raise UserAlreadyExistsException(email)
 
+
 class UserDomainService:
     """
-    Service for complex user domain validations and business rules.
+    Serviço de domínio para validações complexas de domínio de usuário e regras de negócio.
     Recebe explicitamente as regras de validação a serem aplicadas.
     """
-    
+
     def __init__(self, validation_rules: List[ValidationRule]):
         self._validation_rules = validation_rules
-
-    async def create_user(self, user: User) -> User:
-        """
-        Creates a new user, ensuring all domain rules, including
-        uniqueness, are met.
-        """
-        # 1. Verifica unicidade
-        existing = await self._repository.find_by_email(user.email.value)
-        if existing:
-            raise UserAlreadyExistsException(user.email.value)
-        # 2. Valida outras regras
-        await self.validate_business_rules(user)
-        # 3. Persiste
-        saved_user = await self._repository.add(user)
-        return saved_user
 
     def add_validation_rule(self, rule: ValidationRule):
         """Add a custom validation rule."""
@@ -110,18 +114,6 @@ class UserDomainService:
         Validate user update, checking uniqueness only if email changed.
         """
         validation_errors = {}
-
-        # Get current user
-        # current_user = await self._repository.find_by_id(user_id)
-        # if not current_user:
-        #     raise UserNotFoundException(str(user_id))
-
-        # Check email uniqueness only if email changed
-        # if current_user.email.value != updated_user.email.value:
-        #     try:
-        #         await self._uniqueness_service.ensure_email_is_unique(updated_user.email.value)
-        #     except UserAlreadyExistsException as e:
-        #         validation_errors["email"] = e.message
 
         # Run validation rules
         for rule in self._validation_rules:
