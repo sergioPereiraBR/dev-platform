@@ -70,28 +70,13 @@ class Email:
             raise ValueError(f"Invalid email format: {self.value}")
 
 
-# Implementação da especificação de validação de nome de usuário
-class UserNameSpecification(ISpecification):
-    """Especificação para validar o nome de usuário."""
-    MIN_LENGTH = 3
-    MAX_LENGTH = 100
-
-    def is_satisfied_by(self, name_value: str) -> bool:
-        trimmed = name_value.strip()
-        return (
-            bool(trimmed)
-            and self.MIN_LENGTH <= len(trimmed) <= self.MAX_LENGTH
-        )
-
 @dataclass(frozen=True)
 class UserName:
     value: str
-    _name_spec: ISpecification = field(default_factory=UserNameSpecification, init=False, repr=False, compare=False)
 
     def __post_init__(self):
-        trimmed = self.value.strip()
-        if not self._name_spec.is_satisfied_by(trimmed):
-            raise ValueError(
-                f"Name must be between {self._name_spec.MIN_LENGTH} and {self._name_spec.MAX_LENGTH} characters long"
-            )
-        object.__setattr__(self, "value", trimmed)
+        value = self.value.strip()
+        if not value or len(value) < 3:
+            raise ValueError("Name must be at least 3 characters long")
+        if len(self.value) > 100:
+            raise ValueError("Name cannot exceed 100 characters")

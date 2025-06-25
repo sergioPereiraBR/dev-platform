@@ -18,10 +18,17 @@ if ($TargetPath -eq ".") {
 }
 
 # Obtém a data atual no formato desejado
-$DataAtual = Get-Date -Format "yyyyMMdd"
+# $DataAtual = Get-Date -Format "yyyyMMdd"
+
+$DestinationPath = "./docs/análise_/source"
+
+# Converte o caminho para absoluto caso seja o caminho atual (.)
+if ($DestinationPath -eq ".") {
+    $DestinationPath = Get-Location
+}
 
 # Cria o caminho completo para a pasta stake_file
-$StakeFolderPath = Join-Path -Path $TargetPath -ChildPath "stake_file_$DataAtual"
+$StakeFolderPath = Join-Path -Path $DestinationPath -ChildPath "stake_file"
 
 # Verifica se a pasta stake_file existe, se não, cria
 if (-not (Test-Path -Path $StakeFolderPath -PathType Container)) {
@@ -33,15 +40,15 @@ else {
 }
 
 # Cria o caminho completo para a pasta stake_header
-$StakeHeaderFolderPath = Join-Path -Path $TargetPath -ChildPath "stake_header_$DataAtual"
+# $StakeHeaderFolderPath = Join-Path -Path $TargetPath -ChildPath "stake_header_$DataAtual"
 
 # Verifica se a pasta stake_header_file existe, se não, cria
-if (-not (Test-Path -Path $StakeHeaderFolderPath -PathType Container)) {
-    New-Item -Path $StakeHeaderFolderPath -ItemType Directory | Out-Null
-    Write-Host "Pasta stake_header criada em: $StakeHeaderFolderPath"
+if (-not (Test-Path -Path $StakeFolderPath -PathType Container)) {
+    New-Item -Path $StakeFolderPath -ItemType Directory | Out-Null
+    Write-Host "Pasta stake_header criada em: $StakeFolderPath"
 }
 else {
-    Write-Host "Pasta stake_header já existe em: $StakeHeaderFolderPath"
+    Write-Host "Pasta stake_header já existe em: $StakeFolderPath"
 }
 
 # Copia os arquivos para o destino
@@ -63,7 +70,7 @@ $FilesToCopy = @(
 )
 
 foreach ($File in $FilesToCopy) {
-    Copy-Item -Path $File -Destination $StakeHeaderFolderPath
+    Copy-Item -Path $File -Destination $StakeFolderPath
 }
 
 # Função para obter um nome de arquivo único caso já exista

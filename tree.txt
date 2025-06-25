@@ -83,118 +83,80 @@ dev_platform
 |       test_db.py
 |                       
 \---src
-    +---dev_platform
-    |   |   main.py
-    |   |
-    |   +---application
-    |   |   +---ports
-    |   |   |   |   logger.py
-    |   |   |   |
-    |   |   |   \---__pycache__
-    |   |   |           logger.cpython-311.pyc
-    |   |   |
-    |   |   \---user
-    |   |       |   dtos.py
-    |   |       |   mappers.py
-    |   |       |   ports.py
-    |   |       |   use_cases.py
-    |   |       |
-    |   |       \---__pycache__
-    |   |               dtos.cpython-311.pyc
-    |   |               ports.cpython-311.pyc
-    |   |               use_cases.cpython-311.pyc
-    |   |
-    |   +---domain
-    |   |   |   exceptions.py
-    |   |   |   validation_rules.py
-    |   |   |
-    |   |   +---user
-    |   |   |   |   entities.py
-    |   |   |   |   interfaces.py
-    |   |   |   |   services.py
-    |   |   |   |   user_exceptions.py
-    |   |   |   |   value_objects.py
-    |   |   |   |
-    |   |   |   \---__pycache__
-    |   |   |           entities.cpython-311.pyc
-    |   |   |           interfaces.cpython-311.pyc
-    |   |   |           services.cpython-311.pyc
-    |   |   |           user_exceptions.cpython-311.pyc
-    |   |   |           value_objects.cpython-311.pyc
-    |   |   |
-    |   |   \---__pycache__
-    |   |           exceptions.cpython-311.pyc
-    |   |           validation_rules.cpython-311.pyc
-    |   |
-    |   +---infrastructure
-    |   |   |   composition_root.py
-    |   |   |   config.py
-    |   |   |
-    |   |   +---database
-    |   |   |   |   models.py
-    |   |   |   |   repositories.py
-    |   |   |   |   session.py
-    |   |   |   |   unit_of_work.py
-    |   |   |   |
-    |   |   |   \---__pycache__
-    |   |   |           models.cpython-311.pyc
-    |   |   |           repositories.cpython-311.pyc
-    |   |   |           session.cpython-311.pyc
-    |   |   |           unit_of_work.cpython-311.pyc
-    |   |   |
-    |   |   +---logging
-    |   |   |   |   structured_logger.py
-    |   |   |   |
-    |   |   |   \---__pycache__
-    |   |   |           structured_logger.cpython-311.pyc
-    |   |   |
-    |   |   \---__pycache__
-    |   |           composition_root.cpython-311.pyc
-    |   |           config.cpython-311.pyc
-    |   |
-    |   \---interface
-    |       \---cli
-    |           |   user_commands.py
-    |           |
-    |           \---__pycache__
-    |                   user_commands.cpython-311.pyc
-    |
-    \---stake_file
-            .env
-            .env.development
-            .env.production
-            .env.test
-            .gitignore
-            alembic.ini
-            composition_root.py
-            config.production.json
-            config.py
-            dtos.py
-            entities.py
-            env.py
-            exceptions.py
-            interfaces.py
-            logger.py
-            main.py
-            mappers.py
-            mkdocs.yml
-            models.py
-            mypy.ini
-            poetry.toml
-            ports.py
-            pyproject.toml
-            README.md
-            repositories.py
-            services.py
-            session.py
-            settings.json
-            structured_logger.py
-            tree.txt
-            unit_of_work.py
-            user_commands.py
-            user_exceptions.py
-            use_cases.py
-            validation_rules.py
-            value_objects.py
-            
+    \---dev_platform
+        |   main.py
+        |
+        +---application
+        |   +---ports
+        |   |   |   logger.py
+        |   |   |
+        |   |   \---__pycache__
+        |   |           logger.cpython-311.pyc
+        |   |
+        |   \---user
+        |       |   dtos.py
+        |       |   mappers.py
+        |       |   ports.py
+        |       |   use_cases.py
+        |       |
+        |       \---__pycache__
+        |               dtos.cpython-311.pyc
+        |               ports.cpython-311.pyc
+        |               use_cases.cpython-311.pyc
+        |
+        +---domain
+        |   |   exceptions.py
+        |   |   validation_rules.py
+        |   |
+        |   +---user
+        |   |   |   entities.py
+        |   |   |   interfaces.py
+        |   |   |   services.py
+        |   |   |   user_exceptions.py
+        |   |   |   value_objects.py
+        |   |   |
+        |   |   \---__pycache__
+        |   |           entities.cpython-311.pyc
+        |   |           interfaces.cpython-311.pyc
+        |   |           services.cpython-311.pyc
+        |   |           user_exceptions.cpython-311.pyc
+        |   |           value_objects.cpython-311.pyc
+        |   |
+        |   \---__pycache__
+        |           exceptions.cpython-311.pyc
+        |           validation_rules.cpython-311.pyc
+        |
+        +---infrastructure
+        |   |   composition_root.py
+        |   |   config.py
+        |   |
+        |   +---database
+        |   |   |   models.py
+        |   |   |   repositories.py
+        |   |   |   session.py
+        |   |   |   unit_of_work.py
+        |   |   |
+        |   |   \---__pycache__
+        |   |           models.cpython-311.pyc
+        |   |           repositories.cpython-311.pyc
+        |   |           session.cpython-311.pyc
+        |   |           unit_of_work.cpython-311.pyc
+        |   |
+        |   +---logging
+        |   |   |   structured_logger.py
+        |   |   |
+        |   |   \---__pycache__
+        |   |           structured_logger.cpython-311.pyc
+        |   |
+        |   \---__pycache__
+        |           composition_root.cpython-311.pyc
+        |           config.cpython-311.pyc
+        |
+        \---interface
+            \---cli
+                |   user_commands.py
+                |
+                \---__pycache__
+                        user_commands.cpython-311.pyc
+             
     

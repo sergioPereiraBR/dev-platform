@@ -6,59 +6,31 @@ Os serviços são responsáveis por validações complexas, regras de negócio e
 com usuários.
 """
 
-from abc import ABC, abstractmethod
-from typing import List, Dict, Optional, Set
-import re
-from datetime import datetime
+from typing import List, Dict, Optional
 from dev_platform.domain.user.interfaces import IUserRepository 
 from dev_platform.domain.user.entities import User
 from dev_platform.domain.exceptions import DatabaseException
 from dev_platform.domain.user.user_exceptions import (
     UserValidationException,
     UserAlreadyExistsException,
-    UserNotFoundException,
     EmailDomainNotAllowedException,
 )
+from dev_platform.domain.user.validation_rules import ValidationRule
 
-# --- Regras de validação devem ser extraídas para um módulo próprio (ex: validation_rules.py) ---
-# Aqui mantemos apenas a interface base para uso no domínio.
+class UserValidatorService:
+    """Serviço focado em validação de regras de negócio para User."""
+    def __init__(self, validation_rules: List[ValidationRule]):
+        self._validation_rules: List[ValidationRule] = validation_rules
 
-class ValidationRule(ABC):
-    """Base class for validation rules."""
+    async def validate(self, user: User) -> None:
+        validation_errors: dict = {}
+        for rule in self._validation_rules:
+            error_message = await rule.validate(user)
+            if error_message:
+                validation_errors[rule.rule_name] = error_message
+        if validation_errors:
+            raise UserValidationException(validation_errors)
 
-    @abstractmethod
-    async def validate(self, user: User) -> Optional[str]:
-        """
-        Validate user according to this rule.
-        Returns None if valid, error message if invalid.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def rule_name(self) -> str:
-        pass
-
-class UserValidatorService: # Novo serviço focado em validação de regras de negócio
-	def __init__(self, validation_rules: List):
-		self._validation_rules = validation_rules
-
-	async def validate(self, user: User) -> None: # Método principal de validação
-		validation_errors = {}
-		for rule in self._validation_rules:
-			error_message = await rule.validate(user)
-			if error_message:
-				validation_errors[rule.rule_name] = error_message
-		if validation_errors:
-			raise UserValidationException(validation_errors)
-
-	# Métodos como validate_user_update, validate_user_creation_constraints,
-	# validate_business_domain_rules (se forem puramente de validação de regras)
-	# seriam movidos para cá ou para regras de validação específicas.
-	# Métodos de gerenciamento de regras (add/remove/summary) seriam movidos para ValidationRuleProvider ou um Registry.
-
-# --- Serviço de domínio focado apenas na lógica de negócio ---
-# UserDomainService seria renomeado ou refatorado para UserValidatorService
 class UserUniquenessService:
     """Service focused on uniqueness validation."""
 
@@ -74,15 +46,15 @@ class UserUniquenessService:
         ):
             raise UserAlreadyExistsException(email)
 
-
 class UserDomainService:
     """
     Serviço de domínio para validações complexas de domínio de usuário e regras de negócio.
     Recebe explicitamente as regras de validação a serem aplicadas.
     """
 
-    def __init__(self, validation_rules: List[ValidationRule]):
-        self._validation_rules = validation_rules
+    def __init__(self, validation_rules: List[ValidationRule], user_repository: IUserRepository):
+        self._validation_rules: List[ValidationRule] = validation_rules
+        self._repository = user_repository
 
     def add_validation_rule(self, rule: ValidationRule):
         """Add a custom validation rule."""
@@ -100,8 +72,6 @@ class UserDomainService:
         Levanta UserValidationException se alguma regra falhar.
         """
         validation_errors = {}
-
-        # Run all validation rules
         for rule in self._validation_rules:
             error_message = await rule.validate(user)
             if error_message:
@@ -114,8 +84,6 @@ class UserDomainService:
         Validate user update, checking uniqueness only if email changed.
         """
         validation_errors = {}
-
-        # Run validation rules
         for rule in self._validation_rules:
             try:
                 error_message = await rule.validate(updated_user)
@@ -123,7 +91,6 @@ class UserDomainService:
                     validation_errors[rule.rule_name] = error_message
             except Exception as e:
                 validation_errors[rule.rule_name] = f"Validation rule failed: {str(e)}"
-
         if validation_errors:
             raise UserValidationException(validation_errors)
 
@@ -140,14 +107,12 @@ class UserDomainService:
         (Exemplo: limite de usuários, regras de negócio específicas)
         """
         validation_errors = {}
-
         try:
             current_count = await self._repository.count()
             if current_count >= 10000:  # Exemplo de limite
                 validation_errors["system_limit"] = "Maximum number of users reached"
         except Exception as e:
             validation_errors["system_check"] = f"Unable to verify system constraints: {str(e)}"
-
         if validation_errors:
             raise UserValidationException(validation_errors)
 

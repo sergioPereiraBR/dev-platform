@@ -13,7 +13,6 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from dev_platform.domain.user.interfaces import IUserRepository
 from dev_platform.domain.user.entities import User
 from dev_platform.domain.user.value_objects import UserName, Email
-from dev_platform.application.ports.logger import ILogger
 from dev_platform.domain.exceptions import (
     DataIntegrityException,
     DatabaseException, 
@@ -29,8 +28,11 @@ from dev_platform.application.ports.logger import ILogger
 class SQLUserRepository(IUserRepository):
     """SQLAlchemy implementation of the IUserRepository interface."""
     def __init__(self, session: AsyncSession, logger: ILogger):
-        self._session = session
+        self._session: AsyncSession = session
         self._logger: ILogger = logger
+
+    def set_session(self, session: AsyncSession):
+        self._session = session
 
     def _convert_to_domain_user(self, db_user: UserModel) -> User:
         """Convert database model to domain entity."""

@@ -10,9 +10,7 @@ from contextlib import AbstractAsyncContextManager
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from dev_platform.infrastructure.config import ConfigurationFacade
 from dev_platform.application.ports.logger import ILogger
-from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
 from dev_platform.infrastructure.database.session import db_manager
 
 from dev_platform.application.user.ports import UnitOfWork
@@ -21,9 +19,9 @@ from dev_platform.infrastructure.database.repositories import SQLUserRepository 
 
 
 class SQLUnitOfWork(UnitOfWork):
-    def __init__(self, logger: Optional[ILogger] = None, user_repository: Optional[IUserRepository] = None): # Recebe IUserRepository
-        self._session_context: Optional[AbstractAsyncContextManager[AsyncSession]] = None # Gerenciador de contexto para a sessão assíncrona
-        self._logger: ILogger = logger or StructuredLogger(CONFIG__=ConfigurationFacade())
+    def __init__(self, logger: ILogger, user_repository: Optional[IUserRepository]=None): # Recebe IUserRepository
+        self._session_context: Optional[AbstractAsyncContextManager[AsyncSession]]=None # Gerenciador de contexto para a sessão assíncrona
+        self._logger: ILogger = logger
         self._user_repository: Optional[IUserRepository] = user_repository # Atribui o repositório injetado
         self._session: Optional[AsyncSession] = None
 
@@ -42,7 +40,7 @@ class SQLUnitOfWork(UnitOfWork):
         if self._user_repository:
             # Se o repositório foi injetado, atualiza sua sessão interna
             if hasattr(self._user_repository, '_session'): # Assumindo que a implementação concreta tem _session
-                self._user_repository._session = self._session
+                self._user_repository.set_session(self._session)
             else:
                 # Alternativa: o repositório é uma factory que recebe a sessão
                 pass # Lógica mais complexa para factories, fora do escopo inicial

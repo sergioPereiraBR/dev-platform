@@ -129,6 +129,7 @@ class DatabaseSessionManager:
 
 
 # Instância global do gerenciador de sessões
+# Essa instância blobal garante um único ponto de gerenciamento de conexão em toda a aplicação
 db_manager = DatabaseSessionManager(config=ConfigurationFacade())
 
 # Funções de conveniência para compatibilidade

@@ -264,6 +264,24 @@ class ConfigurationFacade:
         Retorna todas as configurações efetivas, mesclando arquivo JSON e variáveis de ambiente.
         """
         return self._accessor.get_all_config()
+    
+    def reload(self) -> None:
+        """
+        Recarrega as configurações do sistema em tempo de execução.
+        Útil para serviços de longa duração que precisam refletir mudanças sem reiniciar.
+        """
+        # Recarrega variáveis de ambiente
+        env_loader: EnvLoader = EnvLoader(self._environment, self._logger)
+        env_loader.load()
+        # Recarrega configurações do JSON
+        json_loader: JsonConfigLoader = JsonConfigLoader(self._environment, self._logger)
+        config_dict: Dict[str, Any] = json_loader.load()
+        # Revalida configurações críticas
+        validator: ConfigValidator = ConfigValidator(self._environment, self._logger)
+        validator.validate()
+        # Atualiza o accessor
+        self._accessor = ConfigAccessor(config_dict, self._logger)
+        self._logger.info("Configurações recarregadas dinamicamente.")
 
     @property
     def database_url(self) -> str:

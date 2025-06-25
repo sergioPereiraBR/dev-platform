@@ -96,8 +96,8 @@ update_project = "poetry run python ./src/dev_platform/main.py project update-pr
 # Tarefas para manipulação de arquivos e geração de relatórios
 clean = "pwsh -Command ./scripts/tools/del_folderes.ps1 './src' '__pycache__'"
 stack = "pwsh -Command ./scripts/tools/stack_files.ps1 './src' 'py'"
-stack2pdf = "poetry run python ./scripts/tools/pdf_generator.py ./src/stake_file --title \"Arquivos do Projeto DEV Platform\" -v"
-compilado = "poetry run python ./scripts/tools/pdf_generator.py ./src/stake_file --title \"Arquivos do Projeto DEV Platform\" -v"
+stack2pdf = "poetry run python ./scripts/tools/pdf_generator.py ./docs/análise_/source/stake_file --title \"Arquivos do Projeto DEV Platform\" -v"
+compilado = "poetry run python ./scripts/tools/pdf_generator.py ./docs/análise_/source/stake_file --title \"Arquivos do Projeto DEV Platform\" -v"
 
 # Tarefas para conversão de arquivos Markdown para Word
 # (melhor executar no WSL Ubuntu 20.04)

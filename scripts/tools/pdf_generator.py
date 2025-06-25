@@ -465,15 +465,16 @@ Exemplos de uso:
         """,
     )
 
-    data_hoje = datetime.now().strftime("%Y%m%d")
+    # data_hoje = datetime.now().strftime("%Y%m%d")
+    file_out = "./docs/análise_/compilado_.pdf"
 
     parser.add_argument("folder", help="Caminho para a pasta contendo os arquivos")
 
     parser.add_argument(
         "-o",
         "--output",
-        default=f"arquivos_compilados_{data_hoje}.pdf",
-        help="Nome do arquivo PDF de saída (padrão: arquivos_compilados.pdf)",
+        default=file_out,
+        help=f"Nome do arquivo PDF de saída (padrão: {file_out})",
     )
 
     parser.add_argument(

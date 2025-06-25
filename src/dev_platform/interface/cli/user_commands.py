@@ -16,9 +16,12 @@ from dev_platform.infrastructure.database.unit_of_work import SQLUnitOfWork
 from dev_platform.application.ports.logger import ILogger
 from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
 from dev_platform.domain.exceptions import ConfigurationException
+from dev_platform.domain.user.user_exceptions import (
+    UserAlreadyExistsException,
+    UserValidationException,
+    UserNotFoundException,
+)
 
-
-# Logger global para uso em run_async
 _LOGGER: ILogger = StructuredLogger()
 
 def run_async(coro) -> None:
@@ -37,36 +40,18 @@ def run_async(coro) -> None:
         return loop.run_until_complete(coro)
     except RuntimeError as re:
         _LOGGER.critical(
-            f"Runtime error occurred: {re}",
+            f"Ocorreu erro em tempo de execução: {re}",
             exception=str(re)
         )
-        sys.exit(1)  # Encerra o CLI com erro
+        sys.exit(1)
+    except Exception as e:
+        _LOGGER.error(f"Erro: {e}", exception=str(e))
+        sys.exit(1)
 
 class UserCommands:
     def __init__(self, composition_root: CompositionRoot, logger: ILogger):
-        self._composition_root = composition_root
-        self._logger = logger
-        # try:
-        #     self._composition_root = CompositionRoot(
-        #         environment=config.get("ENVIRONMENT", "production"),
-        #         logger=self._logger,
-        #         validation_rule_provider=ValidationRuleProvider()
-        #     )
-        # except ConfigurationException as ce:
-        #     self._logger.critical(
-        #         f"Configuration error during initialization: {ce}",
-        #         exception=str(ce)
-        #     )
-        #     raise
-        # except Exception as e:
-        #     self._logger.critical(
-        #         f"Unexpected error during initialization: {e}",
-        #         exception=str(e)
-        #     )
-        #     raise ConfigurationException(
-        #         config_key="COMPOSITION_ROOT",
-        #         reason=f"Unexpected error: {e}"
-        #     )
+        self._composition_root: CompositionRoot = composition_root
+        self._logger: ILogger = logger
 
     async def create_user_async(self, name: str, email: str) -> str:
         """
@@ -78,18 +63,19 @@ class UserCommands:
                 use_case = self._composition_root.create_user_use_case(uow, repo)
                 dto: UserCreateDTO = UserCreateDTO(name=name, email=email)
                 user: UserDTO = await use_case.execute(dto)
-                name_val = getattr(user.name, "value", user.name)
-                email_val = getattr(user.email, "value", user.email)
-                return f"User created successfully: ID {user.id}, Name: {name_val}, Email: {email_val}"
-        except ValueError as e:
-            self._logger.warning(f"Validation error: {e}")
-            return f"Error: Validation Error: {e}"
+                return f"Usuário criado com sucesso: ID {user.id}, Nome: {user.name}, E-mail: {user.email}"
+        except UserAlreadyExistsException as e:
+            self._logger.warning(f"Usuário já existe: {e}")
+            return f"Erro: Usuário já existe: {e}"
+        except UserValidationException as e:
+            self._logger.warning(f"Erro de validação: {e}")
+            return f"Erro: Validação: {e}"
         except ConfigurationException as ce:
-            self._logger.error(f"Configuration error: {ce}", exception=str(ce))
-            return f"Error: Configuration Error: {ce}"
+            self._logger.error(f"Erro de configuração: {ce}", exception=str(ce))
+            return f"Erro: Configuração: {ce}"
         except Exception as e:
-            self._logger.error(f"Error creating user: {e}", exception=str(e))
-            return f"Error: {e}"
+            self._logger.error(f"Erro inesperado ao criar usuário: {e}", exception=str(e))
+            return f"Erro: Erro inesperado ao criar usuário: {e}"
 
     async def list_users_async(self) -> List[str]:
         """
@@ -101,22 +87,25 @@ class UserCommands:
                 use_case = self._composition_root.list_users_use_case(uow, repo)
                 users: List[UserDTO] = await use_case.execute()
                 if not users:
-                    return ["No users found"]
-
+                    return ["Nenhum usuário encontrado"]
                 result: List[str] = []
                 for user in users:
-                    name_val = getattr(user.name, "value", user.name)
-                    email_val = getattr(user.email, "value", user.email)
                     result.append(
-                        f"ID: {user.id}, Name: {name_val}, Email: {email_val}"
+                        f"ID: {user.id}, Nome: {user.name}, E-mail: {user.email}"
                     )
                 return result
+        except UserNotFoundException as e:
+            self._logger.warning(f"Usuário não encontrado: {e}")
+            return [f"Erro: Usuário não encontrado: {e}"]
+        except UserValidationException as e:
+            self._logger.warning(f"Erro de validação: {e}")
+            return [f"Erro: Validação: {e}"]
         except ConfigurationException as ce:
-            self._logger.error(f"Configuration error: {ce}", exception=str(ce))
-            return [f"Error: Configuration Error: {ce}"]
+            self._logger.error(f"Erro de configuração: {ce}", exception=str(ce))
+            return [f"Erro: Configuração: {ce}"]
         except Exception as e:
-            self._logger.error(f"Error listing users: {e}", exception=str(e))
-            return [f"Error: {e}"]
+            self._logger.error(f"Erro inesperado ao listar usuários: {e}", exception=str(e))
+            return [f"Erro: Erro inesperado ao listar usuários: {e}"]
 
     async def update_user_async(
         self, user_id: int, name: Optional[str] = None, email: Optional[str] = None
@@ -125,18 +114,27 @@ class UserCommands:
         Atualiza um usuário existente.
         """
         try:
-            # A CLI agora apenas passa os dados, sem lógica de preenchimento
             async with SQLUnitOfWork(self._logger) as uow:
                 repo = uow.user_repository
-                # O DTO agora aceita valores nulos
                 update_dto = UserUpdateDTO(name=name, email=email)
                 update_use_case = self._composition_root.update_user_use_case(uow, repo)
-                # O caso de uso agora tem toda a responsabilidade
                 updated_user = await update_use_case.execute(user_id=user_id, dto=update_dto)
-            return f"User {user_id} updated successfully: Name: {updated_user.name}, Email: {updated_user.email}"
+            return f"Usuário {user_id} atualizado com sucesso: Nome: {updated_user.name}, E-mail: {updated_user.email}"
+        except UserNotFoundException as e:
+            self._logger.warning(f"Usuário não encontrado: {e}")
+            return f"Erro: Usuário não encontrado: {e}"
+        except UserAlreadyExistsException as e:
+            self._logger.warning(f"Usuário já existe: {e}")
+            return f"Erro: Usuário já existe: {e}"
+        except UserValidationException as e:
+            self._logger.warning(f"Erro de validação: {e}")
+            return f"Erro: Validação: {e}"
+        except ConfigurationException as ce:
+            self._logger.error(f"Erro de configuração: {ce}", exception=str(ce))
+            return f"Erro: Configuração: {ce}"
         except Exception as e:
-            self._logger.error(f"Error updating user: {e}", exception=str(e))
-        return f"Error: {e}"
+            self._logger.error(f"Erro inesperado ao atualizar usuário: {e}", exception=str(e))
+            return f"Erro: Erro inesperado ao atualizar usuário: {e}"
 
     async def get_user_async(self, user_id: int) -> str:
         """
@@ -148,16 +146,20 @@ class UserCommands:
                 use_case = self._composition_root.get_user_use_case(uow, repo)
                 user_entity = await use_case.execute(user_id=user_id)
                 if not user_entity:
-                    return f"User with ID {user_id} not found."
-                name_val = getattr(user_entity.name, "value", user_entity.name)
-                email_val = getattr(user_entity.email, "value", user_entity.email)
-                return f"User found: ID {user_entity.id}, Name: {name_val}, Email: {email_val}"
+                    return f"Usuário com ID {user_id} não encontrado."
+                return f"Usuário encontrado: ID {user_entity.id}, Nome: {user_entity.name}, E-mail: {user_entity.email}"
+        except UserNotFoundException as e:
+            self._logger.warning(f"Usuário não encontrado: {e}")
+            return f"Erro: Usuário não encontrado: {e}"
+        except UserValidationException as e:
+            self._logger.warning(f"Erro de validação: {e}")
+            return f"Erro: Validação: {e}"
         except ConfigurationException as ce:
-            self._logger.error(f"Configuration error: {ce}", exception=str(ce))
-            return f"Error: Configuration Error: {ce}"
+            self._logger.error(f"Erro de configuração: {ce}", exception=str(ce))
+            return f"Erro: Configuração: {ce}"
         except Exception as e:
-            self._logger.error(f"Error getting user: {e}", exception=str(e))
-            return f"Error: {e}"
+            self._logger.error(f"Erro inesperado ao obter usuário: {e}", exception=str(e))
+            return f"Erro: Erro inesperado ao obter usuário: {e}"
 
     async def delete_user_async(self, user_id: int) -> str:
         """
@@ -169,110 +171,95 @@ class UserCommands:
                 use_case = self._composition_root.delete_user_use_case(uow, repo)
                 success: bool = await use_case.execute(user_id=user_id)
                 if success:
-                    return f"User {user_id} deleted successfully."
+                    return f"Usuário {user_id} excluído com sucesso."
                 else:
-                    return f"User {user_id} could not be deleted (not found or other issue)."
+                    return f"Usuário {user_id} não pôde ser excluído (não encontrado ou outro problema)."
+        except UserNotFoundException as e:
+            self._logger.warning(f"Usuário não encontrado: {e}")
+            return f"Erro: Usuário não encontrado: {e}"
+        except UserValidationException as e:
+            self._logger.warning(f"Erro de validação: {e}")
+            return f"Erro: Validação: {e}"
         except ConfigurationException as ce:
-            self._logger.error(f"Configuration error: {ce}", exception=str(ce))
-            return f"Error: Configuration Error: {ce}"
+            self._logger.error(f"Erro de configuração: {ce}", exception=str(ce))
+            return f"Erro: Configuração: {ce}"
         except Exception as e:
-            self._logger.error(f"Error deleting user: {e}", exception=str(e))
-            return f"Error: {e}"
-        
-# Instância única para a sessão da CLI
-logger = StructuredLogger()
-#composition_root = CompositionRoot(environment="production", logger=logger) # Criada uma única vez
+            self._logger.error(f"Erro inesperado ao excluir usuário: {e}", exception=str(e))
+            return f"Erro: Erro inesperado ao excluir usuário: {e}"
+
 
 # Ponto de entrada cria as dependências de infraestrutura
-def get_dependencies():
+def get_commands() -> UserCommands:
     config = ConfigurationFacade(environment=os.getenv("ENVIRONMENT",
-    "production"), logger=logger)
-    composition_root = CompositionRoot(config=config, logger=logger)
-    return composition_root
-
+    "production"), logger=_LOGGER)
+    composition_root = CompositionRoot(config=config, logger=_LOGGER)
+    return UserCommands(composition_root, _LOGGER)
 
 @click.group()
-def cli():
+def user_commands():
     pass
 
-@cli.command()
-@click.option("--name", prompt="User name")
-@click.option("--email", prompt="User email")
+@user_commands.command()
+@click.option("--name", prompt="Nome do usuário")
+@click.option("--email", prompt="E-mail do usuário")
 def create_user(name: str, email: str):
-    """Create a new user."""
-    composition_root = get_dependencies()
-    commands: UserCommands = UserCommands(composition_root, logger)
-
+    """Cria um novo usuário."""
     async def _run_create():
-        result: str = await commands.create_user_async(name, email)
+        result: str = await get_commands().create_user_async(name, email)
         click.echo(result)
-
     return run_async(_run_create())
 
-@cli.command()
+@user_commands.command()
 def list_users():
-    """List all users."""
-    composition_root = get_dependencies()
-    commands: UserCommands = UserCommands(composition_root, logger)
-
+    """Lista todos os usuários."""
     async def _run_list():
-        results: List[str] = await commands.list_users_async()
+        results: List[str] = await get_commands().list_users_async()
         for line in results:
             click.echo(line)
-
     return run_async(_run_list())
 
-@cli.command()
-@click.option("--user-id", type=int, prompt="User ID to update")
+@user_commands.command()
+@click.option("--user-id", type=int, prompt="ID do usuário para atualizar")
 @click.option(
     "--name",
-    prompt="New user name (leave empty to keep current)",
+    prompt="Novo nome do usuário (deixe em branco para manter o atual)",
     default="",
     show_default=False,
     help="Novo nome do usuário. Deixe em branco para manter o atual."
 )
 @click.option(
     "--email",
-    prompt="New user email (leave empty to keep current)",
+    prompt="Novo e-mail do usuário (deixe em branco para manter o atual)",
     default="",
     show_default=False,
     help="Novo e-mail do usuário. Deixe em branco para manter o atual."
 )
 def update_user(user_id: int, name: str, email: str):
-    """Update an existing user."""
-    composition_root = get_dependencies()
-    commands: UserCommands = UserCommands(composition_root, logger)
-
+    """Atualiza um usuário existente."""
     async def _run_update():
-        result: str = await commands.update_user_async(
+        result: str = await get_commands().update_user_async(
             user_id, name if name else None, email if email else None
         )
         click.echo(result)
 
     return run_async(_run_update())
 
-@cli.command()
-@click.option("--user-id", type=int, prompt="User ID to retrieve")
+@user_commands.command()
+@click.option("--user-id", type=int, prompt="ID do usuário para consultar")
 def get_user(user_id: int):
-    """Get a user by ID."""
-    composition_root = get_dependencies()
-    commands: UserCommands = UserCommands(composition_root, logger)
-
+    """Obtém um usuário pelo ID."""
     async def _run_get():
-        result: str = await commands.get_user_async(user_id)
+        result: str = await get_commands().get_user_async(user_id)
         click.echo(result)
 
     return run_async(_run_get())
 
-@cli.command()
-@click.option("--user-id", type=int, prompt="User ID to delete")
+@user_commands.command()
+@click.option("--user-id", type=int, prompt="ID do usuário para excluir")
 def delete_user(user_id: int):
-    """Delete a user by ID."""
-    composition_root = get_dependencies()
-    commands: UserCommands = UserCommands(composition_root, logger)
-
+    """Exclui um usuário pelo ID."""
     async def _run_delete():
-        result: str = await commands.delete_user_async(user_id)
+        result: str = await get_commands().delete_user_async(user_id)
         click.echo(result)
 
     return run_async(_run_delete())
