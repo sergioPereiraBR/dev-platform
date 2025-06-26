@@ -34,10 +34,10 @@ from dev_platform.infrastructure.config import ConfigurationFacade
 from dev_platform.application.ports.logger import ILogger
 from dev_platform.domain.validation_rules import ValidationRule
 
-from dev_platform.application.user.ports import UnitOfWork # Importa a interface
-from dev_platform.domain.user.interfaces import IUserRepository # Importa a interface
-from dev_platform.infrastructure.database.unit_of_work import SQLUnitOfWork # Ainda precisa da implementação concreta para instanciar
-from dev_platform.infrastructure.database.repositories import SQLUserRepository # Ainda precisa da implementação concreta para instanciar
+from dev_platform.application.user.ports import UnitOfWork
+from dev_platform.domain.user.interfaces import IUserRepository
+from dev_platform.infrastructure.database.unit_of_work import SQLUnitOfWork
+from dev_platform.infrastructure.database.repositories import SQLUserRepository
 
 
 class ValidationRuleProvider:
@@ -93,7 +93,7 @@ class ValidationRuleProvider:
             NameProfanityValidationRule(forbidden_words=self._enterprise_forbidden_words),
             # Regras extras para enterprise:
             ForbiddenWordsValidationRule(forbidden_words=self._enterprise_forbidden_words),
-            BusinessHoursValidationRule(True),  # Exemplo: só permitir operações em horário comercial
+            BusinessHoursValidationRule(True),  # True: só permitir operações em horário comercial
         ]
         return rules
 
@@ -121,17 +121,14 @@ class CompositionRoot:
             enable_profanity_filter=self._config.get_typed("validation_enable_profanity_filter", False, bool),
             logger=self._logger
         )
-   
+
     def create_unit_of_work(self) -> UnitOfWork:
-        # O SQLUnitOfWork recebe o repositório via injeção ou uma factory
         user_repo = SQLUserRepository(session=None, logger=self._logger) # A sessão será injetada pelo UoW
-        # O repositório concreto é injetado na UoW.
         return SQLUnitOfWork(logger=self._logger, user_repository=user_repo) # Passa o repositório concreto
     
-    def create_user_use_case(self, uow: SQLUnitOfWork) -> CreateUserUseCase:
-        # Acessa o repositório através da propriedade da UoW após a sua criação.
+    def create_user_use_case(self) -> CreateUserUseCase:
+        uow = self.create_unit_of_work()
         user_repository = uow.user_repository 
-        # O domain_service deve receber apenas o que ele precisa para as regras de domínio.
         return CreateUserUseCase(
             uow=uow,
             user_validator=self.user_domain_service(),
@@ -139,13 +136,15 @@ class CompositionRoot:
             logger=self._logger,
         )
 
-    def list_users_use_case(self, uow: SQLUnitOfWork) -> ListUsersUseCase:
+    def list_users_use_case(self) -> ListUsersUseCase:
+        uow = self.create_unit_of_work()
         return ListUsersUseCase(
             uow=uow,
             logger=self._logger
         )
 
-    def update_user_use_case(self, uow: SQLUnitOfWork) -> UpdateUserUseCase:
+    def update_user_use_case(self) -> UpdateUserUseCase:
+        uow = self.create_unit_of_work()
         user_repository = uow.user_repository
         return UpdateUserUseCase(
             uow=uow,
@@ -153,7 +152,8 @@ class CompositionRoot:
             logger=self._logger,
         )
 
-    def get_user_use_case(self, uow: SQLUnitOfWork) -> GetUserUseCase:
+    def get_user_use_case(self) -> GetUserUseCase:
+        uow = self.create_unit_of_work()
         user_repository = uow.user_repository
         return GetUserUseCase(
             uow=uow,
@@ -161,7 +161,8 @@ class CompositionRoot:
             logger=self._logger,
         )
 
-    def delete_user_use_case(self, uow: SQLUnitOfWork) -> DeleteUserUseCase:
+    def delete_user_use_case(self) -> DeleteUserUseCase:
+        uow = self.create_unit_of_work()
         user_repository = uow.user_repository
         return DeleteUserUseCase(
             uow=uow,

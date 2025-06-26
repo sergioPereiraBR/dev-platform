@@ -11,27 +11,21 @@ from dev_platform.application.user.dtos import UserCreateDTO, UserUpdateDTO, Use
 from dev_platform.domain.user.entities import User
 from dev_platform.application.ports.logger import ILogger
 from dev_platform.application.user.ports import UnitOfWork
-from dev_platform.domain.exceptions import DatabaseException
 from dev_platform.domain.user.user_exceptions import (
     UserValidationException,
     UserAlreadyExistsException,
     UserNotFoundException
 )
 from dev_platform.domain.user.services import UserDomainService, UserUniquenessService, UserValidatorService
+from dev_platform.application.user.mappers import UserMapper
 
-# Função Helper para vonversão do entity para DTO
-def user_to_dto(user: User) -> UserDTO:
-    return UserDTO(
-        id=str(user.id),
-        name=user.name.value if hasattr(user.name, "value") else user.name,
-        email=user.email.value if hasattr(user.email, "value") else user.email,
-    )
 
 class BaseUseCase:
     """Base class for all use cases, providing access to Unit of Work and logger."""
-    def __init__(self, uow: UnitOfWork, logger: ILogger):
+    def __init__(self, uow: UnitOfWork, logger: ILogger, mapper: UserMapper):
         self._uow = uow
         self._logger = logger
+        self._mapper = mapper
 
 class CreateUserUseCase(BaseUseCase):
     """Caso de uso para criar um novo usuário."""
@@ -39,10 +33,11 @@ class CreateUserUseCase(BaseUseCase):
         self,
         uow: UnitOfWork, 
         logger: ILogger,
+        mapper: UserMapper,
         user_validator: UserValidatorService,
         user_uniqueness_service: UserUniquenessService,
     ):
-        super().__init__(uow, logger)
+        super().__init__(uow, logger, mapper)
         self._user_validator = user_validator
         self._user_uniqueness_service = user_uniqueness_service
 
@@ -63,10 +58,10 @@ class CreateUserUseCase(BaseUseCase):
                 self._logger.info(
                     "Usuário criado com sucesso",
                     user_id=saved_user.id,
-                    name=saved_user.name.value if hasattr(saved_user.name, "value") else saved_user.name,
-                    email=saved_user.email.value if hasattr(saved_user.email, "value") else saved_user.email,
+                    name=saved_user.name.value,
+                    email=saved_user.email.value
                 )
-                return user_to_dto(saved_user)
+                return self._mapper.to_dto(saved_user)
             except UserAlreadyExistsException as e:
                 await self._uow.rollback()
                 self._logger.warning(
@@ -95,7 +90,7 @@ class ListUsersUseCase(BaseUseCase):
                 self._logger.info("Starting user listing")
                 users = await self._uow.user_repository.find_all()
                 self._logger.info("Users retrieved successfully", count=len(users))
-                return [user_to_dto(user) for user in users]
+                return [self._mapper.to_dto(user) for user in users]
             except UserNotFoundException:
                 self._logger.error("User not found")
                 raise
@@ -132,7 +127,7 @@ class UpdateUserUseCase(BaseUseCase):
 
                 saved_user = await self._uow.user_repository.update(updated_user)
                 await self._uow.commit()
-                saved_user_dto = user_to_dto(saved_user)
+                saved_user_dto = self._mapper.to_dto(saved_user)
                 self._logger.info(
                     "User updated successfully",
                     user_id=saved_user_dto.id,
@@ -169,7 +164,7 @@ class GetUserUseCase(BaseUseCase):
                     self._logger.error("User not found", user_id=user_id)
                     raise UserNotFoundException(str(user_id))
                 self._logger.info("User retrieved successfully", user_id=user_id)
-                return user_to_dto(user)
+                return self._mapper.to_dto(user)
             except UserNotFoundException:
                 self._logger.error("User not found", user_id=user_id)
                 raise

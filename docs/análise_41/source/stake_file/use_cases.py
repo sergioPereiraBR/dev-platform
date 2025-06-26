@@ -47,14 +47,18 @@ class CreateUserUseCase(BaseUseCase):
         self._user_uniqueness_service = user_uniqueness_service
 
     async def execute(self, dto: UserCreateDTO) -> UserDTO:
+        # Solução: O 'async with' é movido para cá, encapsulando a transação.
         async with self._uow:
             self._logger.info("Iniciando criação de usuário", name=dto.name, email=dto.email)
+            # O bloco try/except original agora fica dentro do 'async with'.
+            # O rollback é tratado automaticamente pelo __aexit__ da UoW em caso de exceção.
             try:               
                 await self._user_uniqueness_service.ensure_email_is_unique(dto.email)
                 user_to_create = User.create(name=dto.name, email=dto.email)
                 await self._user_validator.validate(user_to_create)
 
                 saved_user = await self._uow.user_repository.add(user_to_create)
+                # O commit agora é explícito dentro do bloco de sucesso.
                 await self._uow.commit()
                 self._logger.info(
                     "Usuário criado com sucesso",
@@ -78,7 +82,7 @@ class CreateUserUseCase(BaseUseCase):
             except Exception as e:
                 await self._uow.rollback()
                 self._logger.error(
-                    "Erro durante a criação do usuário",
+                    "Erro inesperado durante a criação do usuário",
                     error=str(e),
                 )
                 raise
@@ -94,6 +98,9 @@ class ListUsersUseCase(BaseUseCase):
                 return [user_to_dto(user) for user in users]
             except UserNotFoundException:
                 self._logger.error("User not found")
+                raise
+            except Exception as e:
+                self._logger.error("Erro inesperado durante a listagem de usuário", error=str(e))
                 raise
 
 class UpdateUserUseCase(BaseUseCase):

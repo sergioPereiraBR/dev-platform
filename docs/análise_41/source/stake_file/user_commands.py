@@ -60,14 +60,10 @@ class UserCommands:
         Cria um novo usuário.
         """
         try:
-            # A instância de SQLUnitOfWork é criada sem injetar o repositório,
-            # o que força a execução da lógica de fallback.
-            uow = self._composition_root.create_unit_of_work()
-            async with uow:
-                use_case = self._composition_root.create_user_use_case(uow)
-                dto: UserCreateDTO = UserCreateDTO(name=name, email=email)
-                user: UserDTO = await use_case.execute(dto)
-                return f"Usuário criado com sucesso: ID {user.id}, Nome: {user.name}, E-mail: {user.email}"
+            use_case = self._composition_root.create_user_use_case()
+            dto: UserCreateDTO = UserCreateDTO(name=name, email=email)
+            user: UserDTO = await use_case.execute(dto)
+            return f"Usuário criado com sucesso: ID {user.id}, Nome: {user.name}, E-mail: {user.email}"
         except UserAlreadyExistsException as e:
             self._logger.warning(f"Usuário já existe: {e}")
             return f"Erro: Usuário já existe: {e}"
@@ -86,18 +82,16 @@ class UserCommands:
         Lista todos os usuários.
         """
         try:
-            uow = self._composition_root.create_unit_of_work()
-            async with uow:
-                use_case = self._composition_root.list_users_use_case(uow)
-                users: List[UserDTO] = await use_case.execute()
-                if not users:
-                    return ["Nenhum usuário encontrado"]
-                result: List[str] = []
-                for user in users:
-                    result.append(
-                        f"ID: {user.id}, Nome: {user.name}, E-mail: {user.email}"
-                    )
-                return result
+            use_case = self._composition_root.list_users_use_case()
+            users: List[UserDTO] = await use_case.execute()
+            if not users:
+                return ["Nenhum usuário encontrado"]
+            result: List[str] = []
+            for user in users:
+                result.append(
+                    f"ID: {user.id}, Nome: {user.name}, E-mail: {user.email}"
+                )
+            return result
         except UserNotFoundException as e:
             self._logger.warning(f"Usuário não encontrado: {e}")
             return [f"Erro: Usuário não encontrado: {e}"]
@@ -118,11 +112,9 @@ class UserCommands:
         Atualiza um usuário existente.
         """
         try:
-            uow = self._composition_root.create_unit_of_work()
-            async with uow:
-                update_use_case = self._composition_root.update_user_use_case(uow)
-                update_dto = UserUpdateDTO(name=name, email=email)
-                updated_user = await update_use_case.execute(user_id=user_id, dto=update_dto)
+            update_use_case = self._composition_root.update_user_use_case()
+            update_dto = UserUpdateDTO(name=name, email=email)
+            updated_user = await update_use_case.execute(user_id=user_id, dto=update_dto)
             return f"Usuário {user_id} atualizado com sucesso: Nome: {updated_user.name}, E-mail: {updated_user.email}"
         except UserNotFoundException as e:
             self._logger.warning(f"Usuário não encontrado: {e}")
@@ -145,13 +137,11 @@ class UserCommands:
         Obtém um usuário pelo ID.
         """
         try:
-            uow = self._composition_root.create_unit_of_work()
-            async with uow:
-                use_case = self._composition_root.get_user_use_case(uow)
-                user_entity = await use_case.execute(user_id=user_id)
-                if not user_entity:
-                    return f"Usuário com ID {user_id} não encontrado."
-                return f"Usuário encontrado: ID {user_entity.id}, Nome: {user_entity.name}, E-mail: {user_entity.email}"
+            use_case = self._composition_root.get_user_use_case()
+            user_entity = await use_case.execute(user_id=user_id)
+            if not user_entity:
+                return f"Usuário com ID {user_id} não encontrado."
+            return f"Usuário encontrado: ID {user_entity.id}, Nome: {user_entity.name}, E-mail: {user_entity.email}"
         except UserNotFoundException as e:
             self._logger.warning(f"Usuário não encontrado: {e}")
             return f"Erro: Usuário não encontrado: {e}"
@@ -170,14 +160,12 @@ class UserCommands:
         Exclui um usuário pelo ID.
         """
         try:
-            uow = self._composition_root.create_unit_of_work()
-            async with uow:
-                use_case = self._composition_root.delete_user_use_case(uow)
-                success: bool = await use_case.execute(user_id=user_id)
-                if success:
-                    return f"Usuário {user_id} excluído com sucesso."
-                else:
-                    return f"Usuário {user_id} não pôde ser excluído (não encontrado ou outro problema)."
+            use_case = self._composition_root.delete_user_use_case()
+            success: bool = await use_case.execute(user_id=user_id)
+            if success:
+                return f"Usuário {user_id} excluído com sucesso."
+            else:
+                return f"Usuário {user_id} não pôde ser excluído (não encontrado ou outro problema)."
         except UserNotFoundException as e:
             self._logger.warning(f"Usuário não encontrado: {e}")
             return f"Erro: Usuário não encontrado: {e}"
