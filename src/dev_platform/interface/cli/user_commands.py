@@ -60,8 +60,6 @@ class UserCommands:
         Cria um novo usuário.
         """
         try:
-            # Solução: A camada de interface apenas obtém o caso de uso e o executa.
-            # Não há mais conhecimento sobre a Unit of Work.
             use_case = self._composition_root.create_user_use_case()
             dto: UserCreateDTO = UserCreateDTO(name=name, email=email)
             user: UserDTO = await use_case.execute(dto)

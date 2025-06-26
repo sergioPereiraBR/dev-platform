@@ -93,7 +93,7 @@ class ValidationRuleProvider:
             NameProfanityValidationRule(forbidden_words=self._enterprise_forbidden_words),
             # Regras extras para enterprise:
             ForbiddenWordsValidationRule(forbidden_words=self._enterprise_forbidden_words),
-            BusinessHoursValidationRule(True),  # Exemplo: só permitir operações em horário comercial
+            BusinessHoursValidationRule(True),  # True: só permitir operações em horário comercial
         ]
         return rules
 
@@ -123,18 +123,12 @@ class CompositionRoot:
         )
 
     def create_unit_of_work(self) -> UnitOfWork:
-        # O SQLUnitOfWork recebe o repositório via injeção ou uma factory
         user_repo = SQLUserRepository(session=None, logger=self._logger) # A sessão será injetada pelo UoW
-        # O repositório concreto é injetado na UoW.
         return SQLUnitOfWork(logger=self._logger, user_repository=user_repo) # Passa o repositório concreto
     
-    
     def create_user_use_case(self) -> CreateUserUseCase:
-        # Solução: O método agora constrói e retorna um caso de uso completo, sem receber parâmetros.
         uow = self.create_unit_of_work()
-        # O repositório é acessado aqui para injetar em outros serviços se necessário.
         user_repository = uow.user_repository 
-        # O domain_service deve receber apenas o que ele precisa para as regras de domínio.
         return CreateUserUseCase(
             uow=uow,
             user_validator=self.user_domain_service(),
