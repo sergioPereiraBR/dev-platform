@@ -7,7 +7,7 @@ Agora utiliza um ValidationRuleProvider para desacoplar a lógica de regras de v
 respeitando OCP e separando logging de infraestrutura.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import List
 from dev_platform.application.user.use_cases import (
     CreateUserUseCase,
     ListUsersUseCase,
@@ -30,7 +30,6 @@ from dev_platform.domain.validation_rules import (
     ForbiddenWordsValidationRule
 )
 
-from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
 from dev_platform.infrastructure.config import ConfigurationFacade
 from dev_platform.application.ports.logger import ILogger
 from dev_platform.domain.validation_rules import ValidationRule
@@ -122,44 +121,48 @@ class CompositionRoot:
             enable_profanity_filter=self._config.get_typed("validation_enable_profanity_filter", False, bool),
             logger=self._logger
         )
+   
+    def create_unit_of_work(self) -> UnitOfWork:
+        # O SQLUnitOfWork recebe o repositório via injeção ou uma factory
+        user_repo = SQLUserRepository(session=None, logger=self._logger) # A sessão será injetada pelo UoW
+        # O repositório concreto é injetado na UoW.
+        return SQLUnitOfWork(logger=self._logger, user_repository=user_repo) # Passa o repositório concreto
     
-    def create_user_use_case(self, uow: UnitOfWork, user_repository: IUserRepository) -> CreateUserUseCase:
+    def create_user_use_case(self, uow: SQLUnitOfWork) -> CreateUserUseCase:
+        # Acessa o repositório através da propriedade da UoW após a sua criação.
+        user_repository = uow.user_repository 
         # O domain_service deve receber apenas o que ele precisa para as regras de domínio.
         return CreateUserUseCase(
             uow=uow,
-            domain_service=self.user_domain_service(),
+            user_validator=self.user_domain_service(),
             user_uniqueness_service=self.user_uniqueness_service(user_repository),
             logger=self._logger,
         )
-    
-    # Novo método para criar o UoW, que encapsula a criação do repositório concreto
-    def create_unit_of_work(self) -> UnitOfWork:
-        # O SQLUnitOfWork agora recebe o repositório via injeção ou uma factory
-        # Para simplificar, vamos injetar o logger e o repositório aqui
-        user_repo = SQLUserRepository(session=None, logger=self._logger) # A sessão será injetada pelo UoW
-        return SQLUnitOfWork(logger=self._logger, user_repository=user_repo) # Passa o repositório concreto
 
-    def list_users_use_case(self, uow: SQLUnitOfWork, user_repository: IUserRepository) -> ListUsersUseCase:
+    def list_users_use_case(self, uow: SQLUnitOfWork) -> ListUsersUseCase:
         return ListUsersUseCase(
             uow=uow,
             logger=self._logger
         )
 
-    def update_user_use_case(self, uow: SQLUnitOfWork, user_repository: IUserRepository) -> UpdateUserUseCase:
+    def update_user_use_case(self, uow: SQLUnitOfWork) -> UpdateUserUseCase:
+        user_repository = uow.user_repository
         return UpdateUserUseCase(
             uow=uow,
             domain_service=self.user_domain_service(user_repository),
             logger=self._logger,
         )
 
-    def get_user_use_case(self, uow: SQLUnitOfWork, user_repository: IUserRepository) -> GetUserUseCase:
+    def get_user_use_case(self, uow: SQLUnitOfWork) -> GetUserUseCase:
+        user_repository = uow.user_repository
         return GetUserUseCase(
             uow=uow,
             domain_service=self.user_domain_service(user_repository),
             logger=self._logger,
         )
 
-    def delete_user_use_case(self, uow: SQLUnitOfWork, user_repository: IUserRepository) -> DeleteUserUseCase:
+    def delete_user_use_case(self, uow: SQLUnitOfWork) -> DeleteUserUseCase:
+        user_repository = uow.user_repository
         return DeleteUserUseCase(
             uow=uow,
             domain_service=self.user_domain_service(user_repository),
@@ -185,7 +188,8 @@ class CompositionRoot:
         """
         return UserAnalyticsService(user_repository)
 
-    def create_enterprise_user_domain_service(
-        self, user_repository: IUserRepository
-    ) -> UserDomainService:
-        return self.user_domain_service(user_repository, user_type="enterprise")
+    def create_enterprise_user_domain_service(self) -> UserDomainService:
+        """
+        Cria o serviço de domínio do usuário corporativo.
+        """
+        return self.user_domain_service(user_type="enterprise")

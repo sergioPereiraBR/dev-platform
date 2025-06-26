@@ -100,7 +100,6 @@ class DatabaseSessionManager:
         finally:
             await session.close()
 
-
     def get_sync_session(self) -> Session:
         """Obtém uma sessão síncrona (para migrações, etc.)."""
         if not self._sync_session_factory:

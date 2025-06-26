@@ -12,41 +12,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from dev_platform.application.ports.logger import ILogger
 from dev_platform.infrastructure.database.session import db_manager
-
 from dev_platform.application.user.ports import UnitOfWork
-from dev_platform.domain.user.interfaces import IUserRepository # Importa a interface
-from dev_platform.infrastructure.database.repositories import SQLUserRepository # Ainda precisa da implementação concreta para instanciar
+from dev_platform.domain.user.interfaces import IUserRepository 
 
 
 class SQLUnitOfWork(UnitOfWork):
-    def __init__(self, logger: ILogger, user_repository: Optional[IUserRepository]=None): # Recebe IUserRepository
+    def __init__(self, logger: ILogger, user_repository: IUserRepository):
         self._session_context: Optional[AbstractAsyncContextManager[AsyncSession]]=None # Gerenciador de contexto para a sessão assíncrona
         self._logger: ILogger = logger
-        self._user_repository: Optional[IUserRepository] = user_repository # Atribui o repositório injetado
+        self._user_repository: IUserRepository = user_repository # Atribui o repositório injetado
         self._session: Optional[AsyncSession] = None
 
     @property
     def user_repository(self) -> IUserRepository:
-        if self._user_repository is None:
-                self._logger.error("O repositório de usuários não foi inicializado no contexto do Unit of Work.")
-                raise RuntimeError("O repositório de usuários não foi inicializado no contexto do Unit of Work.")
         return self._user_repository
 
     async def __aenter__(self):
         # Usar o gerenciador de sessões
         self._session_context = db_manager.get_async_session()
         self._session = await self._session_context.__aenter__()
-        # Garante que o repositório injetado use a sessão correta
-        if self._user_repository:
-            # Se o repositório foi injetado, atualiza sua sessão interna
-            if hasattr(self._user_repository, '_session'): # Assumindo que a implementação concreta tem _session
-                self._user_repository.set_session(self._session)
-            else:
-                # Alternativa: o repositório é uma factory que recebe a sessão
-                pass # Lógica mais complexa para factories, fora do escopo inicial
-        else:
-            # Fallback: se não injetado, cria um SQLUserRepository aqui, mas isso é menos ideal
-            self._user_repository = SQLUserRepository(self._session, logger=self._logger) # Causa Raiz: Instanciação concreta
+        if hasattr(self._user_repository, '_session'):
+            self._user_repository.set_session(self._session)
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -56,7 +42,6 @@ class SQLUnitOfWork(UnitOfWork):
             await self._session_context.__aexit__(exc_type, exc_val, exc_tb)
         # Limpa as referências
         self._session = None
-        self._user_repository = None
         self._session_context = None
 
     async def commit(self):

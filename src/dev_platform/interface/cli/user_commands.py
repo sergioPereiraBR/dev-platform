@@ -12,7 +12,6 @@ from typing import Optional, List
 from dev_platform.infrastructure.config import ConfigurationFacade
 from dev_platform.application.user.dtos import UserCreateDTO, UserUpdateDTO, UserDTO
 from dev_platform.infrastructure.composition_root import CompositionRoot
-from dev_platform.infrastructure.database.unit_of_work import SQLUnitOfWork
 from dev_platform.application.ports.logger import ILogger
 from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
 from dev_platform.domain.exceptions import ConfigurationException
@@ -49,6 +48,9 @@ def run_async(coro) -> None:
         sys.exit(1)
 
 class UserCommands:
+    """
+    Sempre crie o UoW via create_unit_of_work() e o passe para os métodos de casos de uso.
+    """
     def __init__(self, composition_root: CompositionRoot, logger: ILogger):
         self._composition_root: CompositionRoot = composition_root
         self._logger: ILogger = logger
@@ -58,9 +60,11 @@ class UserCommands:
         Cria um novo usuário.
         """
         try:
-            async with SQLUnitOfWork(self._logger) as uow:
-                repo = uow.user_repository
-                use_case = self._composition_root.create_user_use_case(uow, repo)
+            # A instância de SQLUnitOfWork é criada sem injetar o repositório,
+            # o que força a execução da lógica de fallback.
+            uow = self._composition_root.create_unit_of_work()
+            async with uow:
+                use_case = self._composition_root.create_user_use_case(uow)
                 dto: UserCreateDTO = UserCreateDTO(name=name, email=email)
                 user: UserDTO = await use_case.execute(dto)
                 return f"Usuário criado com sucesso: ID {user.id}, Nome: {user.name}, E-mail: {user.email}"
@@ -82,9 +86,9 @@ class UserCommands:
         Lista todos os usuários.
         """
         try:
-            async with SQLUnitOfWork(self._logger) as uow:
-                repo = uow.user_repository
-                use_case = self._composition_root.list_users_use_case(uow, repo)
+            uow = self._composition_root.create_unit_of_work()
+            async with uow:
+                use_case = self._composition_root.list_users_use_case(uow)
                 users: List[UserDTO] = await use_case.execute()
                 if not users:
                     return ["Nenhum usuário encontrado"]
@@ -114,10 +118,10 @@ class UserCommands:
         Atualiza um usuário existente.
         """
         try:
-            async with SQLUnitOfWork(self._logger) as uow:
-                repo = uow.user_repository
+            uow = self._composition_root.create_unit_of_work()
+            async with uow:
+                update_use_case = self._composition_root.update_user_use_case(uow)
                 update_dto = UserUpdateDTO(name=name, email=email)
-                update_use_case = self._composition_root.update_user_use_case(uow, repo)
                 updated_user = await update_use_case.execute(user_id=user_id, dto=update_dto)
             return f"Usuário {user_id} atualizado com sucesso: Nome: {updated_user.name}, E-mail: {updated_user.email}"
         except UserNotFoundException as e:
@@ -141,9 +145,9 @@ class UserCommands:
         Obtém um usuário pelo ID.
         """
         try:
-            async with SQLUnitOfWork(self._logger) as uow:
-                repo = uow.user_repository
-                use_case = self._composition_root.get_user_use_case(uow, repo)
+            uow = self._composition_root.create_unit_of_work()
+            async with uow:
+                use_case = self._composition_root.get_user_use_case(uow)
                 user_entity = await use_case.execute(user_id=user_id)
                 if not user_entity:
                     return f"Usuário com ID {user_id} não encontrado."
@@ -166,9 +170,9 @@ class UserCommands:
         Exclui um usuário pelo ID.
         """
         try:
-            async with SQLUnitOfWork(self._logger) as uow:
-                repo = uow.user_repository
-                use_case = self._composition_root.delete_user_use_case(uow, repo)
+            uow = self._composition_root.create_unit_of_work()
+            async with uow:
+                use_case = self._composition_root.delete_user_use_case(uow)
                 success: bool = await use_case.execute(user_id=user_id)
                 if success:
                     return f"Usuário {user_id} excluído com sucesso."
