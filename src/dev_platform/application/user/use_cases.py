@@ -16,7 +16,7 @@ from dev_platform.domain.user.user_exceptions import (
     UserAlreadyExistsException,
     UserNotFoundException
 )
-from dev_platform.domain.user.services import UserDomainService, UserUniquenessService, UserValidatorService
+from dev_platform.domain.user.services import UserUniquenessService, UserValidatorService
 from dev_platform.application.user.mappers import UserMapper
 
 
@@ -104,10 +104,13 @@ class UpdateUserUseCase(BaseUseCase):
         self,
         uow: UnitOfWork,
         logger: ILogger,
-        domain_service: UserDomainService,
+        mapper: UserMapper,
+        user_validator: UserValidatorService,
+        user_uniqueness_service: UserUniquenessService,
     ):
-        super().__init__(uow, logger)
-        self._domain_service = domain_service
+        super().__init__(uow, logger, mapper)
+        self._user_validator = user_validator
+        self._user_uniqueness_service = user_uniqueness_service
 
     async def execute(self, user_id: int, dto: UserUpdateDTO) -> UserDTO:
         async with self._uow:
@@ -123,7 +126,17 @@ class UpdateUserUseCase(BaseUseCase):
                 
                 new_name = dto.name if dto.name is not None else existing_user.name.value
                 new_email = dto.email if dto.email is not None else existing_user.email.value
+
+                # Verifica se o e-mail foi alterado para acionar a validação de unicidade
+                if new_email.lower() != existing_user.email.value.lower():
+                    await self._user_uniqueness_service.ensure_email_is_unique(
+                        new_email, exclude_user_id=existing_user.id
+                    )
+
                 updated_user = existing_user.update_details(new_name, new_email)
+
+                # Valida a entidade atualizada com as regras de negócio
+                await self._user_validator.validate(updated_user_entity)
 
                 saved_user = await self._uow.user_repository.update(updated_user)
                 await self._uow.commit()

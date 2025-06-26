@@ -17,3 +17,5 @@ class ValidationRule(ABC):
     @abstractmethod
     def rule_name(self) -> str:
         pass
+
+

@@ -38,7 +38,7 @@ from dev_platform.application.user.ports import UnitOfWork
 from dev_platform.domain.user.interfaces import IUserRepository
 from dev_platform.infrastructure.database.unit_of_work import SQLUnitOfWork
 from dev_platform.infrastructure.database.repositories import SQLUserRepository
-
+from dev_platform.application.user.mappers import UserMapper
 
 class ValidationRuleProvider:
     """Provider para regras de validação, desacoplado da infraestrutura."""
@@ -112,6 +112,7 @@ class CompositionRoot:
     ):
         self._config = config
         self._logger = logger
+        self._user_mapper = UserMapper()
         # A CompositionRoot solicita os dados já formatados para a facade de configuração.
         self._validation_rule_provider = ValidationRuleProvider(
             default_allowed_domains=self._config.get_list("allowed_domains"),
@@ -134,13 +135,15 @@ class CompositionRoot:
             user_validator=self.user_domain_service(),
             user_uniqueness_service=self.user_uniqueness_service(user_repository),
             logger=self._logger,
+            mapper=self._user_mapper
         )
 
     def list_users_use_case(self) -> ListUsersUseCase:
         uow = self.create_unit_of_work()
         return ListUsersUseCase(
             uow=uow,
-            logger=self._logger
+            logger=self._logger,
+            mapper=self._user_mapper
         )
 
     def update_user_use_case(self) -> UpdateUserUseCase:
@@ -150,6 +153,7 @@ class CompositionRoot:
             uow=uow,
             domain_service=self.user_domain_service(user_repository),
             logger=self._logger,
+            mapper=self._user_mapper
         )
 
     def get_user_use_case(self) -> GetUserUseCase:
@@ -159,6 +163,7 @@ class CompositionRoot:
             uow=uow,
             domain_service=self.user_domain_service(user_repository),
             logger=self._logger,
+            mapper=self._user_mapper
         )
 
     def delete_user_use_case(self) -> DeleteUserUseCase:
@@ -168,6 +173,7 @@ class CompositionRoot:
             uow=uow,
             domain_service=self.user_domain_service(user_repository),
             logger=self._logger,
+            mapper=self._user_mapper
         )
 
     def user_domain_service(self, user_type: str = "default") -> UserValidatorService:

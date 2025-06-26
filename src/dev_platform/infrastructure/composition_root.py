@@ -16,7 +16,6 @@ from dev_platform.application.user.use_cases import (
     DeleteUserUseCase,
 )
 from dev_platform.domain.user.services import (
-    UserDomainService,
     UserAnalyticsService,
     UserUniquenessService,
     UserValidatorService
@@ -33,11 +32,14 @@ from dev_platform.domain.validation_rules import (
 from dev_platform.infrastructure.config import ConfigurationFacade
 from dev_platform.application.ports.logger import ILogger
 from dev_platform.domain.validation_rules import ValidationRule
+from dev_platform.domain.validation_rules import UserCountLimitValidationRule
 
 from dev_platform.application.user.ports import UnitOfWork
 from dev_platform.domain.user.interfaces import IUserRepository
 from dev_platform.infrastructure.database.unit_of_work import SQLUnitOfWork
 from dev_platform.infrastructure.database.repositories import SQLUserRepository
+from dev_platform.domain.validation_rules import UserCountLimitValidationRule
+from dev_platform.domain.user.services import UserValidatorService
 from dev_platform.application.user.mappers import UserMapper
 
 class ValidationRuleProvider:
@@ -49,6 +51,7 @@ class ValidationRuleProvider:
         enterprise_allowed_domains: List[str],
         enterprise_forbidden_words: List[str],
         enable_profanity_filter: bool,
+        repository: IUserRepository,
         logger: ILogger
     ):
         self._default_allowed_domains = default_allowed_domains
@@ -56,6 +59,7 @@ class ValidationRuleProvider:
         self._enterprise_allowed_domains = enterprise_allowed_domains
         self._enterprise_forbidden_words = enterprise_forbidden_words
         self._enable_profanity_filter = enable_profanity_filter
+        self._repository = repository
         self._logger = logger
 
     def _default_rules(self) -> List[ValidationRule]:
@@ -67,7 +71,8 @@ class ValidationRuleProvider:
             EmailFormatAdvancedValidationRule(),
             NameContentValidationRule(),
             EmailDomainValidationRule(self._default_allowed_domains),
-            NameProfanityValidationRule(forbidden_words=self._default_forbidden_words)
+            NameProfanityValidationRule(forbidden_words=self._default_forbidden_words),
+            UserCountLimitValidationRule(repository=self._repository)
         ]
     
     def get_rules(self, user_type: str = "default") -> List[ValidationRule]:
@@ -113,13 +118,15 @@ class CompositionRoot:
         self._config = config
         self._logger = logger
         self._user_mapper = UserMapper()
-        # A CompositionRoot solicita os dados já formatados para a facade de configuração.
-        self._validation_rule_provider = ValidationRuleProvider(
+
+    def _create_validation_provider(self, repository: IUserRepository) -> ValidationRuleProvider:
+        return ValidationRuleProvider(
             default_allowed_domains=self._config.get_list("allowed_domains"),
             default_forbidden_words=self._config.get_list("validation_forbidden_words"),
             enterprise_allowed_domains=self._config.get_list("enterprise_allowed_domains"),
             enterprise_forbidden_words=self._config.get_list("enterprise_forbidden_words"),
             enable_profanity_filter=self._config.get_typed("validation_enable_profanity_filter", False, bool),
+            repository=repository,  # Injeta o repositório recebido como argumento
             logger=self._logger
         )
 
@@ -129,10 +136,13 @@ class CompositionRoot:
     
     def create_user_use_case(self) -> CreateUserUseCase:
         uow = self.create_unit_of_work()
-        user_repository = uow.user_repository 
+        user_repository = uow.user_repository
+        # O provider é criado aqui, com o repositório do UoW
+        rule_provider = self._create_validation_provider(user_repository)
+        validator_service = UserValidatorService(rule_provider.get_rules("default"))
         return CreateUserUseCase(
             uow=uow,
-            user_validator=self.user_domain_service(),
+            user_validator=validator_service, # Serviço limpo injetado
             user_uniqueness_service=self.user_uniqueness_service(user_repository),
             logger=self._logger,
             mapper=self._user_mapper
@@ -149,18 +159,27 @@ class CompositionRoot:
     def update_user_use_case(self) -> UpdateUserUseCase:
         uow = self.create_unit_of_work()
         user_repository = uow.user_repository
+        # O provider é criado aqui, com o repositório do UoW
+        rule_provider = self._create_validation_provider(user_repository)
+        validator_service = UserValidatorService(rule_provider.get_rules("default"))
+        uniqueness_service = UserUniquenessService(user_repository)
         return UpdateUserUseCase(
             uow=uow,
-            domain_service=self.user_domain_service(user_repository),
             logger=self._logger,
-            mapper=self._user_mapper
+            mapper=self._user_mapper,
+            user_validator=validator_service,
+            user_uniqueness_service=uniqueness_service,
         )
 
     def get_user_use_case(self) -> GetUserUseCase:
         uow = self.create_unit_of_work()
         user_repository = uow.user_repository
+        # O provider é criado aqui, com o repositório do UoW
+        rule_provider = self._create_validation_provider(user_repository)
+        validator_service = UserValidatorService(rule_provider.get_rules("default"))
         return GetUserUseCase(
             uow=uow,
+            user_validator=validator_service,
             domain_service=self.user_domain_service(user_repository),
             logger=self._logger,
             mapper=self._user_mapper
@@ -169,8 +188,12 @@ class CompositionRoot:
     def delete_user_use_case(self) -> DeleteUserUseCase:
         uow = self.create_unit_of_work()
         user_repository = uow.user_repository
+        # O provider é criado aqui, com o repositório do UoW
+        rule_provider = self._create_validation_provider(user_repository)
+        validator_service = UserValidatorService(rule_provider.get_rules("default"))
         return DeleteUserUseCase(
             uow=uow,
+            user_validator=validator_service,
             domain_service=self.user_domain_service(user_repository),
             logger=self._logger,
             mapper=self._user_mapper
@@ -195,8 +218,8 @@ class CompositionRoot:
         """
         return UserAnalyticsService(user_repository)
 
-    def create_enterprise_user_domain_service(self) -> UserDomainService:
-        """
-        Cria o serviço de domínio do usuário corporativo.
-        """
-        return self.user_domain_service(user_type="enterprise")
+    # def create_enterprise_user_domain_service(self) -> UserDomainService:
+    #     """
+    #     Cria o serviço de domínio do usuário corporativo.
+    #     """
+    #     return self.user_domain_service(user_type="enterprise")

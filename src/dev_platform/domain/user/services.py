@@ -17,6 +17,7 @@ from dev_platform.domain.user.user_exceptions import (
 )
 from dev_platform.domain.user.validation_rules import ValidationRule
 
+
 class UserValidatorService:
     """Serviço focado em validação de regras de negócio para User."""
     def __init__(self, validation_rules: List[ValidationRule]):
@@ -30,6 +31,7 @@ class UserValidatorService:
                 validation_errors[rule.rule_name] = error_message
         if validation_errors:
             raise UserValidationException(validation_errors)
+
 
 class UserUniquenessService:
     """Service focused on uniqueness validation."""
@@ -46,88 +48,6 @@ class UserUniquenessService:
         ):
             raise UserAlreadyExistsException(email)
 
-class UserDomainService:
-    """
-    Serviço de domínio para validações complexas de domínio de usuário e regras de negócio.
-    Recebe explicitamente as regras de validação a serem aplicadas.
-    """
-
-    def __init__(self, validation_rules: List[ValidationRule], user_repository: IUserRepository):
-        self._validation_rules: List[ValidationRule] = validation_rules
-        self._repository = user_repository
-
-    def add_validation_rule(self, rule: ValidationRule):
-        """Add a custom validation rule."""
-        self._validation_rules.append(rule)
-
-    def remove_validation_rule(self, rule_name: str):
-        """Remove a validation rule by name."""
-        self._validation_rules = [
-            rule for rule in self._validation_rules if rule.rule_name != rule_name
-        ]
-
-    async def validate_business_rules(self, user: User) -> None:
-        """
-        Valida todas as regras de negócio para um usuário.
-        Levanta UserValidationException se alguma regra falhar.
-        """
-        validation_errors = {}
-        for rule in self._validation_rules:
-            error_message = await rule.validate(user)
-            if error_message:
-                validation_errors[rule.rule_name] = error_message
-        if validation_errors:
-            raise UserValidationException(validation_errors)
-
-    async def validate_user_update(self, user_id: int, updated_user: User) -> None:
-        """
-        Validate user update, checking uniqueness only if email changed.
-        """
-        validation_errors = {}
-        for rule in self._validation_rules:
-            try:
-                error_message = await rule.validate(updated_user)
-                if error_message:
-                    validation_errors[rule.rule_name] = error_message
-            except Exception as e:
-                validation_errors[rule.rule_name] = f"Validation rule failed: {str(e)}"
-        if validation_errors:
-            raise UserValidationException(validation_errors)
-
-    def get_validation_summary(self) -> Dict[str, str]:
-        """Get summary of all active validation rules."""
-        return {
-            rule.rule_name: rule.__class__.__doc__ or "No description available"
-            for rule in self._validation_rules
-        }
-
-    async def validate_user_creation_constraints(self, user: User) -> None:
-        """
-        Validate constraints specific to user creation.
-        (Exemplo: limite de usuários, regras de negócio específicas)
-        """
-        validation_errors = {}
-        try:
-            current_count = await self._repository.count()
-            if current_count >= 10000:  # Exemplo de limite
-                validation_errors["system_limit"] = "Maximum number of users reached"
-        except Exception as e:
-            validation_errors["system_check"] = f"Unable to verify system constraints: {str(e)}"
-        if validation_errors:
-            raise UserValidationException(validation_errors)
-
-    async def validate_business_domain_rules(
-        self, user: User, domain_whitelist: Optional[List[str]] = None
-    ) -> None:
-        """
-        Validate business-specific domain rules.
-        """
-        if domain_whitelist:
-            email_domain = user.email.value.split("@")[1].lower()
-            if email_domain not in [d.lower() for d in domain_whitelist]:
-                raise EmailDomainNotAllowedException(
-                    user.email.value, email_domain, domain_whitelist
-                )
 
 class UserAnalyticsService:
     """Service for user analytics and reporting."""

@@ -8,6 +8,7 @@ from typing import Optional, List, Set
 import re
 from datetime import datetime
 from dev_platform.domain.user.entities import User
+from dev_platform.domain.user.interfaces import IUserRepository
 
 
 class ValidationRule(ABC):
@@ -25,6 +26,27 @@ class ValidationRule(ABC):
     @abstractmethod
     def rule_name(self) -> str:
         pass
+
+
+#Solução: Nova regra de validação com dependência do repositório
+class UserCountLimitValidationRule(ValidationRule):
+    """Verifica se o número total de usuários não excedeu o limite do sistema."""
+    rule_name: str = "user_count_limit"
+
+    def __init__(self, repository: IUserRepository, max_users: int = 10000):
+        self._repository = repository
+        self._max_users = max_users
+
+    async def validate(self, user: User) -> Optional[str]:
+        try:
+            current_count = await self._repository.count()
+            if current_count >= self._max_users:
+                return f"O limite do sistema de {self._max_users} usuários foi atingido."
+        except Exception:
+            # Não bloquear a criação se a contagem falhar, mas logar o erro.
+            # O logger deve ser injetado se um log for desejado aqui.
+            return "Não foi possível verificar o limite de usuários do sistema."
+        return None
 
 
 class EmailFormatAdvancedValidationRule(ValidationRule):
