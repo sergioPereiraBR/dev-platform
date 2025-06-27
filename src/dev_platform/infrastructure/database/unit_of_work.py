@@ -11,16 +11,18 @@ from contextlib import AbstractAsyncContextManager
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from dev_platform.application.ports.logger import ILogger
-from dev_platform.infrastructure.database.session import start_dbsm
 from dev_platform.application.user.ports import UnitOfWork
 from dev_platform.domain.user.interfaces import IUserRepository 
+from dev_platform.infrastructure.database.session import DatabaseSessionManager # Importa
+
 
 
 class SQLUnitOfWork(UnitOfWork):
-    def __init__(self, logger: ILogger, user_repository: IUserRepository):
-        self._session_context: Optional[AbstractAsyncContextManager[AsyncSession]]=None # Gerenciador de contexto para a sessão assíncrona
+    def __init__(self, logger: ILogger, user_repository: IUserRepository, db_session_manager: DatabaseSessionManager):
         self._logger: ILogger = logger
         self._user_repository: IUserRepository = user_repository # Atribui o repositório injetado
+        self._db_session_manager: DatabaseSessionManager = db_session_manager
+        self._session_context: Optional[AbstractAsyncContextManager[AsyncSession]]=None # Gerenciador de contexto para a sessão assíncrona
         self._session: Optional[AsyncSession] = None
 
     @property
@@ -28,10 +30,7 @@ class SQLUnitOfWork(UnitOfWork):
         return self._user_repository
 
     async def __aenter__(self):
-        # Usar o gerenciador de sessões
-        # start_dbsm() inicia o gerenciador da sessão do banco de dados
-        db_manager = start_dbsm(self._logger)
-        self._session_context = db_manager.get_async_session()
+        self._session_context = self._db_session_manager.get_async_session()
         self._session = await self._session_context.__aenter__()
         if hasattr(self._user_repository, '_session'):
             self._user_repository.set_session(self._session)

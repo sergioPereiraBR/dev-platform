@@ -207,8 +207,10 @@ class ConfigurationFacade:
         """
         Inicializa a fachada de configuração, permitindo injeção de dependências para testes ou customização.
         """
-        if hasattr(self, "_initialized") and self._initialized:
-            return
+        # Removido o check de _initialized e _reset_singleton
+        # if hasattr(self, "_initialized") and self._initialized:
+        #     return
+        
         self._environment: str = environment or os.getenv("ENVIRONMENT", "production")
         self._logger: ILogger = logger # Logger agora é sempre injetado
 
@@ -222,12 +224,12 @@ class ConfigurationFacade:
         self._accessor: ConfigAccessor = (accessor_factory or ConfigAccessor)(config_dict, self._logger)
         self._initialized: bool = True
 
-    @classmethod
-    def _reset_singleton(cls) -> None:
-        """
-        Reseta a instância singleton (apenas para uso em testes).
-        """
-        cls._instance = None
+    # @classmethod
+    # def _reset_singleton(cls) -> None:
+    #     """
+    #     Reseta a instância singleton (apenas para uso em testes).
+    #     """
+    #     cls._instance = None
 
     def get(self, key: str, default: Any = None) -> Any:
         """

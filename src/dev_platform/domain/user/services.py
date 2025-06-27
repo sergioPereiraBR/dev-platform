@@ -19,7 +19,10 @@ from dev_platform.domain.user.validation_rules import ValidationRule
 
 
 class UserValidatorService:
-    """Serviço focado em validação de regras de negócio para User."""
+    """
+    Serviço focado em validação de regras de negócio para User.
+    Para utilizar pode ser necessário importar UserType
+    """
     def __init__(self, validation_rules: List[ValidationRule]):
         self._validation_rules: List[ValidationRule] = validation_rules
 

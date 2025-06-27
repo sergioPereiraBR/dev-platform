@@ -8,10 +8,12 @@ Ele permite o uso de context managers para garantir o commit automático e rollb
 
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Optional
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, declarative_base
 from sqlalchemy.engine import Engine
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine, AsyncSession, async_sessionmaker
+
 from dev_platform.infrastructure.config import ConfigurationFacade
 from dev_platform.application.ports.logger import ILogger
 
@@ -40,29 +42,31 @@ class DatabaseSessionManager:
     O rollback é automático em caso de exceção.
     Para controle manual, crie a sessão diretamente via factory."""
 
-    def __init__(self, config: ConfigurationFacade):
-        # self._async_engine: Optional[AsyncEngine] = None
-        # self._sync_engine: Optional[Engine] = None
-        # self._async_session_factory: Optional[async_sessionmaker] = None
-        # self._sync_session_factory: Optional[sessionmaker] = None
-        self.config = config
-        #self.config.logger.debug("DatabaseSessionManager inicializado com a configuração.")
+    def __init__(self, config: ConfigurationFacade, logger: ILogger):
+        self._async_engine: Optional[AsyncEngine] = None
+        self._async_session_factory: Optional[async_sessionmaker] = None
+        self._sync_engine: Optional[Engine] = None
+        self._sync_session_factory: Optional[sessionmaker] = None
+        self._config = config
+        self._logger = logger
+        self._logger.debug("DatabaseSessionManager inicializado com a configuração.")
         self._initialize_engines()
 
     def _initialize_engines(self):
         """Inicializa os engines síncronos e assíncronos."""
         # Configurações do pool
         pool_config = {
-            "pool_size": int(self.config.get("database_pool_size", 5)),
-            "max_overflow": int(self.config.get("database_max_overflow", 10)),
-            "pool_pre_ping": self.config.get("database_pool_pre_ping", True),
+            "pool_size": int(self._config.get("database_pool_size", 5)),
+            "max_overflow": int(self._config.get("database_max_overflow", 10)),
+            "pool_pre_ping": self._config.get("database_pool_pre_ping", True),
+            "pool_recycle": 3600,
         }
 
         # Engine assíncrono
-        async_url = self.config.get("database_url")
+        async_url = self._config.get("database_url")
         self._async_engine = create_async_engine(
             async_url,
-            echo=self.config.get("database_echo", False),
+            echo=self._config.get("database_echo", False),
             **pool_config
         )
 
@@ -75,9 +79,9 @@ class DatabaseSessionManager:
         if not async_url.startswith(
             "sqlite+aiosqlite"
         ):  # SQLite não precisa de engine síncrono separado
-            sync_url = self.config.get("database_url")
+            sync_url = self._config.get("database_url")
             self._sync_engine = create_engine(
-                sync_url, echo = self.config.get("database_echo", False), **pool_config
+                sync_url, echo = self._config.get("database_echo", False), **pool_config
             )
 
             self._sync_session_factory = sessionmaker(
@@ -129,37 +133,3 @@ class DatabaseSessionManager:
     def sync_engine(self) -> Engine:
         """Propriedade para acessar o engine síncrono."""
         return self._sync_engine
-
-
-# Instância global do gerenciador de sessões
-# Essa instância blobal garante um único ponto de gerenciamento de conexão em toda a aplicação
-
-db_manager = None
-
-def start_dbsm(logger: ILogger) -> DatabaseSessionManager:
-    """
-    Inicializa o gerenciador da sessão do banco de dados.
-    """
-    configuration_facade = ConfigurationFacade(logger)
-    return DatabaseSessionManager(configuration_facade)
-
-# Funções de conveniência para compatibilidade
-async def get_async_session():
-    """Função de conveniência para obter sessão assíncrona.
-    Garante que o gerenciador de sessões assíncronas esteja inicializado
-    e faz await session.commit() automaticamente ao sair do bloco."""
-    if db_manager._async_session_factory is None:
-        raise RuntimeError("Async session factory is not initialized")
-    async with db_manager.get_async_session() as session:
-        yield session
-
-def get_sync_session():
-    """Função de conveniência para obter sessão síncrona."""
-    return db_manager.get_sync_session()
-
-# Aliases para compatibilidade com código existente
-# if db_manager._async_session_factory:
-#     AsyncSessionLocal = db_manager._async_session_factory
-
-# if db_manager._sync_session_factory:
-#     SessionLocal = db_manager._sync_session_factory

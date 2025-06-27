@@ -7,7 +7,7 @@ Agora utiliza um ValidationRuleProvider para desacoplar a lógica de regras de v
 respeitando OCP e separando logging de infraestrutura.
 """
 
-from typing import List
+from typing import List, Any, Optional
 from dev_platform.application.user.use_cases import (
     CreateUserUseCase,
     ListUsersUseCase,
@@ -40,6 +40,9 @@ from dev_platform.infrastructure.database.repositories import SQLUserRepository
 from dev_platform.domain.validation_rules import UserCountLimitValidationRule
 from dev_platform.domain.user.services import UserValidatorService
 from dev_platform.application.user.mappers import UserMapper
+from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
+from dev_platform.infrastructure.database.session import DatabaseSessionManager
+from dev_platform.domain.user.user_types import UserType
 
 
 class ValidationRuleProvider:
@@ -75,11 +78,11 @@ class ValidationRuleProvider:
             UserCountLimitValidationRule(repository=self._repository)
         ]
     
-    def get_rules(self, user_type: str = "default") -> List[ValidationRule]:
+    def get_rules(self, user_type: UserType = UserType.DEFAULT) -> List[ValidationRule]:
         """
         Retorna a lista de regras de validação conforme o tipo de usuário.
         """
-        if user_type == "enterprise":
+        if user_type == UserType.ENTERPRISE:
             return self._enterprise_rules()
         return self._default_rules()
 
@@ -110,16 +113,33 @@ class CompositionRoot:
     Utiliza ValidationRuleProvider para regras de validação (OCP).
     """
 
-    def __init__(
-        self,
-        # config: ConfigurationFacade, # Configuração injetada
-		logger: ILogger, # Logger injetado
-    ):
+    def __init__(self):
         # self._config = config
-        self._logger = logger
+        self._logger: ILogger # Declara o tipo antes de inicializar para evitar circular dependency ao instanciar StructuredLogger
         self._user_mapper = UserMapper()
         # Inicializa a ConfigurationFacade UMA VEZ aqui
-        self._config_facade = ConfigurationFacade(logger=self._logger) # Passa o logger existente
+        self._config_facade = ConfigurationFacade(logger=self._get_temp_logger()) # Cria ConfigurationFacade primeiro com um logger temporário
+        self._logger = StructuredLogger(config=self._config_facade) # Agora StructuredLogger usa a config facade
+        self._db_session_manager = DatabaseSessionManager(
+            config=self._config_facade,
+            logger=self._logger
+        )
+        self._user_mapper = UserMapper()
+
+    def _get_temp_logger(self) -> ILogger:
+        # Cria um logger simples temporário para ConfigurationFacade durante a inicialização
+        class TempLogger(ILogger):
+            def set_correlation_id(self, correlation_id: Optional[str] = None): pass
+            def debug(self, message: str, **kwargs: Any) -> None: pass
+            def info(self, message: str, **kwargs: Any) -> None: pass
+            def warning(self, message: str, **kwargs: Any) -> None: pass
+            def error(self, message: str, **kwargs: Any) -> None: pass
+            def critical(self, message: str, **kwargs: Any) -> None: pass
+            def log(self, level: str, message: str, **kwargs: Any) -> None: pass
+        return TempLogger()
+
+    def get_logger(self) -> ILogger:
+        return self._logger
 
     def get_configuration_facade(self) -> ConfigurationFacade:
         """Retorna a instância da fachada de configuração."""
@@ -147,14 +167,18 @@ class CompositionRoot:
     def create_unit_of_work(self) -> UnitOfWork:
         # Agora, create_unit_of_work utiliza o método privado para criar o repositório
         user_repo: SQLUserRepository = self._create_user_repository()
-        return SQLUnitOfWork(logger=self._logger, user_repository=user_repo)
+        return SQLUnitOfWork(
+            logger=self._logger, 
+            user_repository=user_repo,
+            db_session_manager=self._db_session_manager # <--- Injeta DatabaseSessionManager
+        )
     
     def create_user_use_case(self) -> CreateUserUseCase:
         uow: SQLUnitOfWork = self.create_unit_of_work()
 		# Acesso ao user_repository através da UoW, evitando duplicação na criação do repositório
         user_repository: IUserRepository = uow.user_repository # Este acesso é necessário para os serviços dependentes do repositório
         rule_provider = self._create_validation_provider(user_repository)
-        validator_service = UserValidatorService(rule_provider.get_rules("default"))
+        validator_service = UserValidatorService(rule_provider.get_rules(UserType.DEFAULT)) # Usa Enum
         return CreateUserUseCase(
             uow=uow,
             user_validator=validator_service, # Serviço limpo injetado
@@ -175,7 +199,7 @@ class CompositionRoot:
         uow: SQLUnitOfWork = self.create_unit_of_work()
         user_repository: IUserRepository = uow.user_repository # Necessário para os serviços de domínio
         rule_provider = self._create_validation_provider(user_repository)
-        validator_service = UserValidatorService(rule_provider.get_rules("default"))
+        validator_service = UserValidatorService(rule_provider.get_rules(UserType.DEFAULT)) # Usa Enum
         uniqueness_service = UserUniquenessService(user_repository)
         return UpdateUserUseCase(
             uow=uow,
@@ -190,7 +214,7 @@ class CompositionRoot:
         user_repository: IUserRepository = uow.user_repository
         rule_provider = self._create_validation_provider(user_repository)
         # O provider é criado aqui, com o repositório do UoW
-        validator_service = UserValidatorService(rule_provider.get_rules("default"))
+        validator_service = UserValidatorService(rule_provider.get_rules(UserType.DEFAULT)) # Usa Enum
         uniqueness_service = UserUniquenessService(user_repository)
         return GetUserUseCase(
             uow=uow,
@@ -207,7 +231,7 @@ class CompositionRoot:
         rule_provider = self._create_validation_provider(user_repository)
         # O provider é criado aqui, com o repositório do UoW
         rule_provider = self._create_validation_provider(user_repository)
-        validator_service = UserValidatorService(rule_provider.get_rules("default"))
+        validator_service = UserValidatorService(rule_provider.get_rules(UserType.DEFAULT)) # Usa Enum
         uniqueness_service = UserUniquenessService(user_repository)
         return DeleteUserUseCase(
             uow=uow,
@@ -217,13 +241,6 @@ class CompositionRoot:
             mapper=self._user_mapper,
             user_uniqueness_service=uniqueness_service
         )
-
-    def user_domain_service(self, user_type: str = "default") -> UserValidatorService:
-        """
-        Cria UserValidatorService com regras de validação baseadas em configuração e tipo de usuário.
-        """
-        rules = self._validation_rule_provider.get_rules(user_type)
-        return UserValidatorService(validation_rules=rules)
     
     def user_uniqueness_service(self, user_repository: IUserRepository) -> UserUniquenessService:
         """
