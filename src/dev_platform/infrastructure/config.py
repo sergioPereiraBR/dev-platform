@@ -188,7 +188,7 @@ class ConfigurationFacade:
     Fachada para acesso às configurações do sistema, permitindo injeção de dependências.
 
     Parâmetros de __init__:
-        logger: ILogger customizado (opcional)
+        logger: ILogger customizado
         env_loader_factory: Callable para criar um EnvLoader customizado (opcional)
         json_loader_factory: Callable para criar um JsonConfigLoader customizado (opcional)
         validator_factory: Callable para criar um ConfigValidator customizado (opcional)
@@ -197,7 +197,7 @@ class ConfigurationFacade:
 
     def __init__(
         self,
-        logger: Optional[ILogger] = None,
+        logger: ILogger,
         env_loader_factory: Optional[Callable[[str, ILogger], EnvLoader]] = None,
         json_loader_factory: Optional[Callable[[str, ILogger], JsonConfigLoader]] = None,
         validator_factory: Optional[Callable[[str, ILogger], ConfigValidator]] = None,
@@ -210,12 +210,7 @@ class ConfigurationFacade:
         if hasattr(self, "_initialized") and self._initialized:
             return
         self._environment: str = environment or os.getenv("ENVIRONMENT", "production")
-
-        if logger is not None:
-            self._logger: ILogger = logger
-        else:
-            from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
-            self._logger: ILogger = StructuredLogger()
+        self._logger: ILogger = logger # Logger agora é sempre injetado
 
         # Permite injeção de dependências para facilitar testes/mocks
         env_loader: EnvLoader = (env_loader_factory or EnvLoader)(self._environment, self._logger)

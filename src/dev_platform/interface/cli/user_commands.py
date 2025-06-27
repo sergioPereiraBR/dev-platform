@@ -45,6 +45,7 @@ def run_async(coro) -> None:
         sys.exit(1)
     except Exception as e:
         _LOGGER.error(f"Erro: {e}", exception=str(e))
+        print(e)
         sys.exit(1)
 
 class UserCommands:
@@ -182,9 +183,7 @@ class UserCommands:
 
 # Ponto de entrada cria as dependências de infraestrutura
 def get_commands() -> UserCommands:
-    config = ConfigurationFacade(environment=os.getenv("ENVIRONMENT",
-    "production"), logger=_LOGGER)
-    composition_root = CompositionRoot(config=config, logger=_LOGGER)
+    composition_root = CompositionRoot(logger=_LOGGER)
     return UserCommands(composition_root, _LOGGER)
 
 @click.group()

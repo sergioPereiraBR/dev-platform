@@ -95,3 +95,10 @@ class UserName:
                 f"Name must be between {self._name_spec.MIN_LENGTH} and {self._name_spec.MAX_LENGTH} characters long"
             )
         object.__setattr__(self, "value", trimmed)
+
+
+@dataclass
+class Address:
+	street: str
+	city: str
+	# ...

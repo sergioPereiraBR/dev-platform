@@ -13,6 +13,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.engine import Engine
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine, AsyncSession, async_sessionmaker
 from dev_platform.infrastructure.config import ConfigurationFacade
+from dev_platform.application.ports.logger import ILogger
 
 
 class DatabaseSessionManager:
@@ -39,12 +40,13 @@ class DatabaseSessionManager:
     O rollback é automático em caso de exceção.
     Para controle manual, crie a sessão diretamente via factory."""
 
-    def __init__(self, config: Optional[ConfigurationFacade] = None):
-        self._async_engine: Optional[AsyncEngine] = None
-        self._sync_engine: Optional[Engine] = None
-        self._async_session_factory: Optional[async_sessionmaker] = None
-        self._sync_session_factory: Optional[sessionmaker] = None
-        self.config = config or ConfigurationFacade()
+    def __init__(self, config: ConfigurationFacade):
+        # self._async_engine: Optional[AsyncEngine] = None
+        # self._sync_engine: Optional[Engine] = None
+        # self._async_session_factory: Optional[async_sessionmaker] = None
+        # self._sync_session_factory: Optional[sessionmaker] = None
+        self.config = config
+        #self.config.logger.debug("DatabaseSessionManager inicializado com a configuração.")
         self._initialize_engines()
 
     def _initialize_engines(self):
@@ -91,6 +93,8 @@ class DatabaseSessionManager:
         Fornece uma sessão de banco de dados assíncrona.
         O controle de commit e rollback é delegado ao chamador (ex: Unit of
         Work).
+        Pode ser necessário chamar antes start_dbsm() para inicializar 
+        o gerenciador da sessão do banco de dados.
         """
         if self._async_session_factory is None:
             raise RuntimeError("Async session factory is not initialized")
@@ -129,7 +133,15 @@ class DatabaseSessionManager:
 
 # Instância global do gerenciador de sessões
 # Essa instância blobal garante um único ponto de gerenciamento de conexão em toda a aplicação
-db_manager = DatabaseSessionManager(config=ConfigurationFacade())
+
+db_manager = None
+
+def start_dbsm(logger: ILogger) -> DatabaseSessionManager:
+    """
+    Inicializa o gerenciador da sessão do banco de dados.
+    """
+    configuration_facade = ConfigurationFacade(logger)
+    return DatabaseSessionManager(configuration_facade)
 
 # Funções de conveniência para compatibilidade
 async def get_async_session():
@@ -146,8 +158,8 @@ def get_sync_session():
     return db_manager.get_sync_session()
 
 # Aliases para compatibilidade com código existente
-if db_manager._async_session_factory:
-    AsyncSessionLocal = db_manager._async_session_factory
+# if db_manager._async_session_factory:
+#     AsyncSessionLocal = db_manager._async_session_factory
 
-if db_manager._sync_session_factory:
-    SessionLocal = db_manager._sync_session_factory
+# if db_manager._sync_session_factory:
+#     SessionLocal = db_manager._sync_session_factory

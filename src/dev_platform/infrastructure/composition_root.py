@@ -32,15 +32,15 @@ from dev_platform.domain.validation_rules import (
 from dev_platform.infrastructure.config import ConfigurationFacade
 from dev_platform.application.ports.logger import ILogger
 from dev_platform.domain.validation_rules import ValidationRule
-from dev_platform.domain.validation_rules import UserCountLimitValidationRule
-
 from dev_platform.application.user.ports import UnitOfWork
-from dev_platform.domain.user.interfaces import IUserRepository
 from dev_platform.infrastructure.database.unit_of_work import SQLUnitOfWork
+
+from dev_platform.domain.user.interfaces import IUserRepository
 from dev_platform.infrastructure.database.repositories import SQLUserRepository
 from dev_platform.domain.validation_rules import UserCountLimitValidationRule
 from dev_platform.domain.user.services import UserValidatorService
 from dev_platform.application.user.mappers import UserMapper
+
 
 class ValidationRuleProvider:
     """Provider para regras de validação, desacoplado da infraestrutura."""
@@ -112,32 +112,47 @@ class CompositionRoot:
 
     def __init__(
         self,
-        config: ConfigurationFacade, # Configuração injetada
+        # config: ConfigurationFacade, # Configuração injetada
 		logger: ILogger, # Logger injetado
     ):
-        self._config = config
+        # self._config = config
         self._logger = logger
         self._user_mapper = UserMapper()
+        # Inicializa a ConfigurationFacade UMA VEZ aqui
+        self._config_facade = ConfigurationFacade(logger=self._logger) # Passa o logger existente
+
+    def get_configuration_facade(self) -> ConfigurationFacade:
+        """Retorna a instância da fachada de configuração."""
+        return self._config_facade
 
     def _create_validation_provider(self, repository: IUserRepository) -> ValidationRuleProvider:
         return ValidationRuleProvider(
-            default_allowed_domains=self._config.get_list("allowed_domains"),
-            default_forbidden_words=self._config.get_list("validation_forbidden_words"),
-            enterprise_allowed_domains=self._config.get_list("enterprise_allowed_domains"),
-            enterprise_forbidden_words=self._config.get_list("enterprise_forbidden_words"),
-            enable_profanity_filter=self._config.get_typed("validation_enable_profanity_filter", False, bool),
+            default_allowed_domains=self._config_facade.get_list("allowed_domains"),
+            default_forbidden_words=self._config_facade.get_list("validation_forbidden_words"),
+            enterprise_allowed_domains=self._config_facade.get_list("enterprise_allowed_domains"),
+            enterprise_forbidden_words=self._config_facade.get_list("enterprise_forbidden_words"),
+            enable_profanity_filter=self._config_facade.get_typed("validation_enable_profanity_filter", False, bool),
             repository=repository,  # Injeta o repositório recebido como argumento
             logger=self._logger
         )
+    
+    def _create_user_repository(self) -> IUserRepository:
+        """
+		Método privado para criar e configurar o repositório de usuários.
+		Centraliza a lógica de inicialização do repositório.
+		"""
+		# A sessão é injetada pelo UoW posteriormente
+        return SQLUserRepository(session=None, logger=self._logger)
 
     def create_unit_of_work(self) -> UnitOfWork:
-        user_repo = SQLUserRepository(session=None, logger=self._logger) # A sessão será injetada pelo UoW
-        return SQLUnitOfWork(logger=self._logger, user_repository=user_repo) # Passa o repositório concreto
+        # Agora, create_unit_of_work utiliza o método privado para criar o repositório
+        user_repo: SQLUserRepository = self._create_user_repository()
+        return SQLUnitOfWork(logger=self._logger, user_repository=user_repo)
     
     def create_user_use_case(self) -> CreateUserUseCase:
-        uow = self.create_unit_of_work()
-        user_repository = uow.user_repository
-        # O provider é criado aqui, com o repositório do UoW
+        uow: SQLUnitOfWork = self.create_unit_of_work()
+		# Acesso ao user_repository através da UoW, evitando duplicação na criação do repositório
+        user_repository: IUserRepository = uow.user_repository # Este acesso é necessário para os serviços dependentes do repositório
         rule_provider = self._create_validation_provider(user_repository)
         validator_service = UserValidatorService(rule_provider.get_rules("default"))
         return CreateUserUseCase(
@@ -149,7 +164,7 @@ class CompositionRoot:
         )
 
     def list_users_use_case(self) -> ListUsersUseCase:
-        uow = self.create_unit_of_work()
+        uow: SQLUnitOfWork = self.create_unit_of_work()
         return ListUsersUseCase(
             uow=uow,
             logger=self._logger,
@@ -157,9 +172,8 @@ class CompositionRoot:
         )
 
     def update_user_use_case(self) -> UpdateUserUseCase:
-        uow = self.create_unit_of_work()
-        user_repository = uow.user_repository
-        # O provider é criado aqui, com o repositório do UoW
+        uow: SQLUnitOfWork = self.create_unit_of_work()
+        user_repository: IUserRepository = uow.user_repository # Necessário para os serviços de domínio
         rule_provider = self._create_validation_provider(user_repository)
         validator_service = UserValidatorService(rule_provider.get_rules("default"))
         uniqueness_service = UserUniquenessService(user_repository)
@@ -172,31 +186,36 @@ class CompositionRoot:
         )
 
     def get_user_use_case(self) -> GetUserUseCase:
-        uow = self.create_unit_of_work()
-        user_repository = uow.user_repository
-        # O provider é criado aqui, com o repositório do UoW
+        uow: SQLUnitOfWork = self.create_unit_of_work()
+        user_repository: IUserRepository = uow.user_repository
         rule_provider = self._create_validation_provider(user_repository)
+        # O provider é criado aqui, com o repositório do UoW
         validator_service = UserValidatorService(rule_provider.get_rules("default"))
+        uniqueness_service = UserUniquenessService(user_repository)
         return GetUserUseCase(
             uow=uow,
             user_validator=validator_service,
             domain_service=self.user_domain_service(user_repository),
             logger=self._logger,
-            mapper=self._user_mapper
+            mapper=self._user_mapper,
+            user_uniqueness_service=uniqueness_service
         )
 
     def delete_user_use_case(self) -> DeleteUserUseCase:
-        uow = self.create_unit_of_work()
-        user_repository = uow.user_repository
+        uow: SQLUnitOfWork = self.create_unit_of_work()
+        user_repository: IUserRepository = uow.user_repository
+        rule_provider = self._create_validation_provider(user_repository)
         # O provider é criado aqui, com o repositório do UoW
         rule_provider = self._create_validation_provider(user_repository)
         validator_service = UserValidatorService(rule_provider.get_rules("default"))
+        uniqueness_service = UserUniquenessService(user_repository)
         return DeleteUserUseCase(
             uow=uow,
             user_validator=validator_service,
             domain_service=self.user_domain_service(user_repository),
             logger=self._logger,
-            mapper=self._user_mapper
+            mapper=self._user_mapper,
+            user_uniqueness_service=uniqueness_service
         )
 
     def user_domain_service(self, user_type: str = "default") -> UserValidatorService:

@@ -49,7 +49,7 @@ class CreateUserUseCase(BaseUseCase):
             # O rollback é tratado automaticamente pelo __aexit__ da UoW em caso de exceção.
             try:               
                 await self._user_uniqueness_service.ensure_email_is_unique(dto.email)
-                user_to_create = User.create(name=dto.name, email=dto.email)
+                user_to_create = User.create(name=dto.name, email=dto.email) # User é a entidade <<<<<<<<<<<<<<<<
                 await self._user_validator.validate(user_to_create)
 
                 saved_user = await self._uow.user_repository.add(user_to_create)
@@ -136,7 +136,7 @@ class UpdateUserUseCase(BaseUseCase):
                 updated_user = existing_user.update_details(new_name, new_email)
 
                 # Valida a entidade atualizada com as regras de negócio
-                await self._user_validator.validate(updated_user_entity)
+                await self._user_validator.validate(updated_user)
 
                 saved_user = await self._uow.user_repository.update(updated_user)
                 await self._uow.commit()
