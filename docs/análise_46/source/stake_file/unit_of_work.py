@@ -37,16 +37,21 @@ class SQLUnitOfWork(UnitOfWork):
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        # Delega TODA a lógica de saída para o gerenciador de sessão.
-        # O gerenciador já cuida do commit, rollback e fechamento.
-        if self._session_context:
-            await self._session_context.__aexit__(exc_type, exc_val, exc_tb)
-        # Limpa as referências
-        self._session = None
-        self._session_context = None
+        try:
+            if exc_type:
+                # Se uma exceção ocorreu, faz o rollback
+                self._logger.warning("Ocorreu uma exceção, revertendo a transação (UW).", exc_info=(exc_type, exc_val, exc_tb))
+                await self._session.rollback()
+            else:
+                # Se não houve exceção, faz o commit
+                await self._session.commit()
+        finally:
+            # Garante que a sessão seja fechada
+            await self._session.close()
+            self._session = None
 
-    async def commit(self):
+    async def _commit(self):
         await self._session.commit()
 
-    async def rollback(self):
+    async def _rollback(self):
         await self._session.rollback()

@@ -46,25 +46,25 @@ class CreateUserUseCase(BaseUseCase):
         # O rollback é implícito em caso de exceção, e o commit é implícito em caso de sucesso.
         async with self._uow:
             try:  
-                self._logger.info("Iniciando criação de usuário (UC).", name=dto.name, email=dto.email)             
+                self._logger.info("Iniciando criação de usuário.", name=dto.name, email=dto.email)             
                 await self._user_uniqueness_service.ensure_email_is_unique(dto.email)
                 user_to_create = User.create(name=dto.name, email=dto.email)
                 await self._user_validator.validate(user_to_create)
                 saved_user = await self._uow.user_repository.add(user_to_create)
                 self._logger.info(
-                    "Usuário criado com sucesso (UC).",
+                    "Usuário criado com sucesso.",
                     user_id=saved_user.id,
                 )
                 return self._mapper.to_dto(saved_user)
             except (UserAlreadyExistsException, UserValidationException) as e:
                 self._logger.warning(
-                    "Falha ao validar as regras de negócio na criação do usuário. A transação será revertida (UC).",
+                    "Falha ao validar as regras de negócio na criação do usuário. A transação será revertida.",
                     error=str(e)
                 )
                 raise # A UoW cuidará do rollback ao capturar a exceção.
             except Exception as e:
                 self._logger.error(
-                    "Erro inesperado durante a criação do usuário. A transação será revertida (UC).",
+                    "Erro inesperado durante a criação do usuário. A transação será revertida.",
                     error=str(e),
                 )
                 raise
@@ -74,15 +74,15 @@ class ListUsersUseCase(BaseUseCase):
     async def execute(self) -> List[UserDTO]:
         async with self._uow:
             try:
-                self._logger.info("Starting user listing (UCL).")
+                self._logger.info("Starting user listing.")
                 users = await self._uow.user_repository.find_all()
-                self._logger.info("Users retrieved successfully (UCL).", count=len(users))
+                self._logger.info("Users retrieved successfully.", count=len(users))
                 return [self._mapper.to_dto(user) for user in users]
             except UserNotFoundException:
-                self._logger.error("User not found (UCL).")
+                self._logger.error("User not found.")
                 raise
             except Exception as e:
-                self._logger.error("Erro inesperado durante a listagem de usuário (UCL).", error=str(e))
+                self._logger.error("Erro inesperado durante a listagem de usuário.", error=str(e))
                 raise
 
 class UpdateUserUseCase(BaseUseCase):
@@ -103,12 +103,12 @@ class UpdateUserUseCase(BaseUseCase):
         async with self._uow:
             self._logger.set_correlation_id()
             self._logger.info(
-                "Starting user update (UC).", user_id=user_id, update_data=dto.model_dump()
+                "Starting user update", user_id=user_id, update_data=dto.model_dump()
             )
             try:
                 existing_user = await self._uow.user_repository.find_by_id(user_id)
                 if not existing_user:
-                    self._logger.error("User not found for update (UC).", user_id=user_id)
+                    self._logger.error("User not found for update", user_id=user_id)
                     raise UserNotFoundException(str(user_id))
                 
                 new_name = dto.name if dto.name is not None else existing_user.name.value
@@ -128,7 +128,7 @@ class UpdateUserUseCase(BaseUseCase):
                 saved_user = await self._uow.user_repository.update(updated_user)
                 saved_user_dto = self._mapper.to_dto(saved_user)
                 self._logger.info(
-                    "User updated successfully (UC).",
+                    "User updated successfully",
                     user_id=saved_user_dto.id,
                     name=saved_user_dto.name,
                     email=saved_user_dto.email,
@@ -137,16 +137,16 @@ class UpdateUserUseCase(BaseUseCase):
             except (UserValidationException, UserNotFoundException) as e:
                 if isinstance(e, UserValidationException):
                     self._logger.error(
-                        "User update validation failed (UC).",
+                        "User update validation failed",
                         user_id=user_id,
                         validation_errors=e.validation_errors,
                     )
                 else:
-                    self._logger.error("User not found for update (UC).", user_id=user_id)
+                    self._logger.error("User not found for update", user_id=user_id)
                 raise
             except Exception as e:
                 self._logger.error(
-                    "Domain error during user update (UC).",
+                    "Domain error during user update",
                     user_id=user_id,
                     error=str(e),
                 )
@@ -157,15 +157,15 @@ class GetUserUseCase(BaseUseCase):
     async def execute(self, user_id: int) -> UserDTO:
         async with self._uow:
             try:
-                self._logger.info("Getting user (UC).", user_id=user_id)
+                self._logger.info("Getting user", user_id=user_id)
                 user = await self._uow.user_repository.find_by_id(user_id)
                 if not user:
-                    self._logger.error("User not found (UC).", user_id=user_id)
+                    self._logger.error("User not found", user_id=user_id)
                     raise UserNotFoundException(str(user_id))
-                self._logger.info("User retrieved successfully (UC).", user_id=user_id)
+                self._logger.info("User retrieved successfully", user_id=user_id)
                 return self._mapper.to_dto(user)
             except UserNotFoundException:
-                self._logger.error("User not found (UC).", user_id=user_id)
+                self._logger.error("User not found", user_id=user_id)
                 raise
 
 class DeleteUserUseCase(BaseUseCase):
@@ -173,23 +173,23 @@ class DeleteUserUseCase(BaseUseCase):
     async def execute(self, user_id: int) -> bool:
         async with self._uow:
             try:
-                self._logger.info("Starting user deletion (UC).", user_id=user_id)
+                self._logger.info("Starting user deletion", user_id=user_id)
                 existing_user = await self._uow.user_repository.find_by_id(user_id)
                 if not existing_user:
-                    self._logger.error("User not found for deletion (UC).", user_id=user_id)
+                    self._logger.error("User not found for deletion", user_id=user_id)
                     raise UserNotFoundException(str(user_id))
                 success = await self._uow.user_repository.delete(user_id)
                 if success:
-                    self._logger.info("User deleted successfully (UC).", user_id=user_id)
+                    self._logger.info("User deleted successfully", user_id=user_id)
                 else:
-                    self._logger.warning("User deletion failed (UC).", user_id=user_id)
+                    self._logger.warning("User deletion failed", user_id=user_id)
                 return success
             except UserNotFoundException:
-                self._logger.error("User not found for deletion (UC).", user_id=user_id)
+                self._logger.error("User not found for deletion", user_id=user_id)
                 raise
             except Exception as e:
                 self._logger.error(
-                    "Domain error during user deletion (UC).",
+                    "Domain error during user deletion",
                     user_id=user_id,
                     error=str(e),
                 )
