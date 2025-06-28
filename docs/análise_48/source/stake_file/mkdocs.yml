@@ -1,0 +1,95 @@
+site_name: Dev Platform
+site_description: Descrição do seu projeto
+site_author: Seu Nome
+site_url: https://exemplo.com/
+
+repo_name: seu-usuario/seu-projeto
+repo_url: https://github.com/seu-usuario/seu-projeto
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - search.highlight
+    - search.share
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Mudar para modo escuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch
+        name: Mudar para modo claro
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]  # Onde buscar pelo código fonte
+          options:
+            docstring_style: google
+            show_source: true
+            show_submodules: true
+
+nav:
+  - Início: index.md
+  - Guia do Usuário:
+    - user-guide/getting-started.md
+    - user-guide/advanced-usage.md
+  - Documentação da API:
+    - Visão Geral: api/index.md
+    - Application: api/application.md
+    - Domain: api/domain.md
+    - Infrastructure: api/infrastructure.md
+    - Interface: api/interface.md
+    - Shared: api/shared.md
+  - Desenvolvimento:
+    - development/contributing.md
+    - development/architecture.md
+  - Changelog: changelog.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/seu-usuario
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/seu-usuario
+    - icon: fontawesome/brands/linkedin
+      link: https://linkedin.com/in/seu-usuario
+
+copyright: Copyright &copy; 2025 Pereira Dev
