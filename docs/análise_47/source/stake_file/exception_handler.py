@@ -9,15 +9,11 @@ from dev_platform.application.ports.logger import ILogger
 
 class IExceptionMapper(ABC):
     @abstractmethod
-    def map_and_raise(self, error: Exception, operation: str, **context) -> None:
-        """
-        Mapeia uma exceção de infraestrutura para uma exceção de domínio e a lança.
+    def map_and_raise(self, error: Exception, **context):
+        pass
 
-        Args:
-            error (Exception): A exceção original capturada.
-            operation (str): O nome da operação que estava em andamento.
-            **context (Any): Dados de contexto adicionais sobre a operação.
-        """
+
+    def map_and_raise(self, error: Exception, operation: str, **context):
         pass
 
 class SQLAlchemyExceptionMapper(IExceptionMapper):

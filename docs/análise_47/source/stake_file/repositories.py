@@ -148,3 +148,53 @@ class SQLUserRepository(IUserRepository):
         result = await self._session.execute(select(func.count(UserModel.id)))
         count = result.scalar()
         return count if count is not None else 0
+
+class RepositoryExceptionHandler:
+    """Utility class for handling repository exceptions consistently."""
+
+    @staticmethod
+    def handle_sqlalchemy_error(operation: str, error: SQLAlchemyError, **context):
+        """Handle SQLAlchemy specific errors."""
+        if isinstance(error, IntegrityError):
+            #Acessa o erro original do driver DBAPI
+            dbapi_exception = error.orig
+
+            # Checa se o driver fornece o nome da constraint (ex: psycopg2, mysql-connector)
+            # A forma exata pode variar um pouco entre drivers, mas o princípio é o mesmo.
+            # Para PyMySQL/aiomysql, a análise do erro pode ser necessária.
+            # No entanto, a forma mais robusta é checar o código de erro do MySQL.
+            # Erro 1062 do MySQL é para entrada duplicada.
+
+            # Exemplo para MySQL (código de erro 1062)
+            if hasattr(dbapi_exception, 'errno') and dbapi_exception.errno == 1062:
+                error_msg = str(dbapi_exception)
+                if "'uq_users_email'" in error_msg: # Checa o nome da constraint
+                    email = context.get("email", "unknown")
+                    raise UserAlreadyExistsException(email) from error
+                else:
+                    # Outra violação de unicidade
+                    raise DataIntegrityException(
+                        constraint_name="unknown", # ou extrair o nome da constraint da msg
+                        details=error_msg, original_exception=error
+                    ) from error
+
+        context_str = ", ".join([f"{k}={v}" for k, v in context.items()])
+        error_msg = f"{operation} failed"
+        if context_str:
+            error_msg += f" ({context_str})"
+
+        raise DatabaseException(
+            operation=operation, reason=str(error), original_exception=error
+        )
+
+    @staticmethod
+    def handle_generic_error(operation: str, error: Exception, **context):
+        """Handle generic errors."""
+        context_str = ", ".join([f"{k}={v}" for k, v in context.items()])
+        error_msg = f"{operation} failed"
+        if context_str:
+            error_msg += f" ({context_str})"
+  
+        raise DatabaseException(
+            operation=operation, reason=str(error), original_exception=error
+        )

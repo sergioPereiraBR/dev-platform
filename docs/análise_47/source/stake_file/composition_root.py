@@ -43,6 +43,7 @@ from dev_platform.application.user.mappers import UserMapper
 from dev_platform.infrastructure.logging.structured_logger import StructuredLogger
 from dev_platform.infrastructure.database.session import DatabaseSessionManager
 from dev_platform.domain.user.user_types import UserType
+from dev_platform.infrastructure.database.exception_handler import SQLAlchemyExceptionMapper
 
 
 class ValidationRuleProvider:
@@ -161,8 +162,15 @@ class CompositionRoot:
 		Método privado para criar e configurar o repositório de usuários.
 		Centraliza a lógica de inicialização do repositório.
 		"""
+        # Cria e injeta o mapeador de exceções
+        exception_mapper = SQLAlchemyExceptionMapper(logger=self._logger)
+
 		# A sessão é injetada pelo UoW posteriormente
-        return SQLUserRepository(session=None, logger=self._logger)
+        return SQLUserRepository(
+            session=None, 
+            logger=self._logger,
+            exception_mapper=exception_mapper # <-- Injeta o mapper
+        )
 
     def create_unit_of_work(self) -> UnitOfWork:
         # Agora, create_unit_of_work utiliza o método privado para criar o repositório

@@ -40,7 +40,7 @@ class SQLUnitOfWork(UnitOfWork):
         try:
             if exc_type:
                 # Se uma exceção ocorreu, faz o rollback
-                self._logger.warning("Ocorreu uma exceção, revertendo a transação (UW).", exc_info=(exc_type, exc_val, exc_tb))
+                self._logger.warning("Ocorreu uma exceção, revertendo a transação", exc_info=(exc_type, exc_val, exc_tb))
                 await self._session.rollback()
             else:
                 # Se não houve exceção, faz o commit
